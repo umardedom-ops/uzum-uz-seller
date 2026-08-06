@@ -1,0 +1,24 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Maxfiy: .env konteynerga NUSXALANMAYDI — u `env_file` orqali beriladi
+.env
+
+# Lokal baza va chiqarilgan fayllar
+*.db
+*.sqlite3
+generated/
+
+.git/
+.gitignore
+tests/
+docs/
+*.md
+!README.md
+
+.idea/
+.vscode/

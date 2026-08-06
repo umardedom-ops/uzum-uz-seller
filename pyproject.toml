@@ -1,0 +1,21 @@
+[project]
+name = "uzum-seller-bot"
+version = "0.1.0"
+description = "Uzum Market sellerlari uchun Telegram bot — yo'qotilgan pulni topadi"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Alembic o'zi generatsiya qiladi — uslub bo'yicha tekshirmaymiz
+exclude = ["app/db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# UP042: `str, Enum` — SQLAlchemy bilan sinalgan naqsh, StrEnum'ga o'tmaymiz
+ignore = ["UP042"]

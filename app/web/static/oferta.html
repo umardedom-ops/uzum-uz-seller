@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ommaviy oferta — Uzum Seller Bot</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5f6b7a;
+    --line: #e3e8ef;
+    --accent: #1f3864;
+    --warn-bg: #fff8e6;
+    --warn-line: #e6c260;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --fg: #e6e9ef; --muted: #9aa5b4;
+      --line: #2a2f38; --accent: #7ea6ff;
+      --warn-bg: #2a2416; --warn-line: #6b5a24;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 80px;
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 28px; font-size: 0.95rem; }
+  h2 {
+    font-size: 1.1rem; margin: 34px 0 10px; padding-top: 18px;
+    border-top: 1px solid var(--line); color: var(--accent);
+  }
+  h3 { font-size: 1rem; margin: 20px 0 8px; }
+  p, li { margin: 0 0 10px; }
+  ol, ul { padding-left: 22px; }
+  ol > li { margin-bottom: 8px; }
+  .fill {
+    background: var(--warn-bg); border-bottom: 1px dashed var(--warn-line);
+    padding: 1px 5px; border-radius: 3px; font-weight: 600;
+  }
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-line);
+    border-radius: 8px; padding: 14px 16px; margin: 18px 0;
+    font-size: 0.94rem;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.95rem; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  th { background: rgba(127,127,127,.08); font-weight: 600; }
+  .req { font-size: 0.95rem; }
+  .req dt { font-weight: 600; margin-top: 10px; }
+  .req dd { margin: 2px 0 0 0; color: var(--muted); }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+           color: var(--muted); font-size: 0.9rem; }
+  a { color: var(--accent); }
+  @media (max-width: 560px) { body { padding: 20px 14px 60px; } h1 { font-size: 1.4rem; } }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Ommaviy oferta</h1>
+<p class="sub">
+  Uzum Market sotuvchilari uchun axborot-tahliliy xizmat ko'rsatish to'g'risida<br>
+  Tahrir sanasi: <span class="fill">[SANA]</span> · Kuchga kirish sanasi: e'lon qilingan kundan
+</p>
+
+<div class="note">
+  <strong>Diqqat.</strong> Ushbu hujjat — ommaviy oferta. Xizmatdan foydalanishni
+  boshlash (Telegram-botda «Qabul qilaman» tugmasini bosish) ofertani to'liq va
+  so'zsiz qabul qilish (aksept) hisoblanadi. Iltimos, matnni oxirigacha o'qing.
+</div>
+
+<h2>1. Umumiy qoidalar</h2>
+<ol>
+  <li>Ushbu hujjat <span class="fill">[TASHKILOT TO'LIQ NOMI]</span>
+      (keyingi o'rinlarda — <b>Ijrochi</b>) tomonidan har qanday jismoniy yoki
+      yuridik shaxsga (keyingi o'rinlarda — <b>Foydalanuvchi</b>) bildirilgan
+      rasmiy taklif — ommaviy ofertadir.</li>
+  <li>Oferta O'zbekiston Respublikasi Fuqarolik kodeksining oferta, ommaviy
+      oferta va aksept to'g'risidagi qoidalari asosida tuzilgan.</li>
+  <li>Foydalanuvchi ofertani qabul qilgan paytdan boshlab Tomonlar o'rtasida
+      yozma shaklda tuzilgan shartnomaga teng kuchga ega bitim vujudga keladi.</li>
+  <li>Ijrochi ofertaga bir tomonlama o'zgartirish kiritish huquqiga ega.
+      O'zgartirishlar ushbu sahifada e'lon qilingan kundan kuchga kiradi.
+      Foydalanuvchi xizmatdan foydalanishni davom ettirishi o'zgartirishlarga
+      rozilik hisoblanadi.</li>
+</ol>
+
+<h2>2. Asosiy tushunchalar</h2>
+<dl class="req">
+  <dt>Xizmat</dt>
+  <dd>Telegram-bot (<span class="fill">[BOT USERNAME]</span>) orqali ko'rsatiladigan
+      axborot-tahliliy xizmat: Foydalanuvchining Uzum Market'dagi do'koni bo'yicha
+      ma'lumotlarni yig'ish, tahlil qilish va hisobotlar shakllantirish.</dd>
+
+  <dt>API kalit</dt>
+  <dd>Uzum Market sotuvchi kabinetida Foydalanuvchi tomonidan yaratiladigan va
+      Ijrochiga ixtiyoriy ravishda taqdim etiladigan kirish kaliti.</dd>
+
+  <dt>Hisobot</dt>
+  <dd>Xizmat tomonidan avtomatik shakllantiriladigan tahliliy hujjat (Excel, PDF,
+      da'vo xati loyihasi va boshqalar).</dd>
+
+  <dt>Obuna</dt>
+  <dd>Tanlangan tarif bo'yicha muayyan muddatga Xizmatdan foydalanish huquqi.</dd>
+</dl>
+
+<h2>3. Oferta predmeti</h2>
+<ol>
+  <li>Ijrochi Foydalanuvchiga axborot-tahliliy xizmat ko'rsatadi, Foydalanuvchi
+      esa tanlangan tarifga muvofiq haq to'laydi.</li>
+  <li>Xizmat quyidagilarni o'z ichiga oladi:
+    <ul>
+      <li>do'kon ma'lumotlarini muntazam yig'ish va saqlash;</li>
+      <li>ombor qoldiqlari, sotuvlar, qaytarishlar, komissiya va logistika
+          bo'yicha tahliliy hisob-kitoblar;</li>
+      <li>aniqlangan nomuvofiqliklar bo'yicha hisobotlar va hujjat loyihalarini
+          shakllantirish;</li>
+      <li>Telegram orqali xabarnomalar yuborish.</li>
+    </ul>
+  </li>
+  <li>Xizmat masofadan, Telegram-bot interfeysi orqali ko'rsatiladi.</li>
+</ol>
+
+<h2>4. Ijrochining Uzum Market bilan aloqasi yo'qligi</h2>
+<div class="note">
+  Ijrochi <b>«Uzum Market» MChJ bilan hech qanday huquqiy aloqada emas</b>,
+  uning vakili, agenti, hamkori yoki filiali hisoblanmaydi. Xizmat mustaqil
+  ravishda ko'rsatiladi va Uzum Market tomonidan tasdiqlanmagan yoki
+  homiylik qilinmagan.
+</div>
+<ol>
+  <li>Xizmat Uzum Market tomonidan taqdim etilgan rasmiy API interfeysidan
+      foydalanadi.</li>
+  <li>Uzum Market tomonidan API ishlashini to'xtatish, o'zgartirish yoki
+      cheklash Xizmat ishlashiga ta'sir qilishi mumkin. Bunday holatlar
+      Ijrochining aybi hisoblanmaydi.</li>
+</ol>
+
+<h2>5. Aksept tartibi</h2>
+<ol>
+  <li>Aksept quyidagi harakatlar orqali amalga oshiriladi:
+    <ol type="a">
+      <li>Telegram-botda ushbu oferta bilan tanishish;</li>
+      <li>«Qabul qilaman» tugmasini bosish.</li>
+    </ol>
+  </li>
+  <li>Aksept qilingan sana va vaqt Ijrochining axborot tizimida qayd etiladi
+      va nizo yuzaga kelganda dalil hisoblanadi.</li>
+  <li>Ofertani qisman qabul qilishga yo'l qo'yilmaydi.</li>
+</ol>
+
+<h2>6. Sinov muddati, tariflar va to'lov</h2>
+<ol>
+  <li>Yangi Foydalanuvchiga <b>3 (uch) kunlik bepul sinov muddati</b> beriladi.
+      Sinov muddatida Xizmatning barcha imkoniyatlari ochiq bo'ladi.</li>
+  <li>Amaldagi tariflar:
+    <table>
+      <tr><th>Tarif</th><th>Narx (oyiga)</th><th>Hajmi</th></tr>
+      <tr><td>Basic</td><td>149 000 so'm</td><td>Asosiy tahlil va hisobotlar</td></tr>
+      <tr><td>Pro</td><td>299 000 so'm</td><td>Barcha imkoniyatlar</td></tr>
+    </table>
+  </li>
+  <li>Narxlar O'zbekiston Respublikasi milliy valyutasida ko'rsatilgan.
+      Ijrochi narxlarni o'zgartirish huquqiga ega; o'zgargan narx allaqachon
+      to'langan davrga nisbatan qo'llanilmaydi.</li>
+  <li>To'lov Xizmatga to'lov tizimlari orqali oldindan amalga oshiriladi.
+      Obuna to'lov tasdiqlangan paytdan boshlab faollashadi.</li>
+  <li>Obuna muddati tugaganda Xizmatdan foydalanish avtomatik cheklanadi.
+      Yig'ilgan ma'lumotlar 8-bo'limda ko'rsatilgan muddat davomida saqlanadi.</li>
+  <li>Ijrochi tomonidan Xizmat texnik sabablarga ko'ra ketma-ket
+      <span class="fill">[N]</span> kundan ortiq ko'rsatilmagan bo'lsa,
+      Foydalanuvchining murojaatiga binoan obuna muddati shu muddatga uzaytiriladi.</li>
+</ol>
+
+<h3>6.1. Pulni qaytarish</h3>
+<ol>
+  <li>To'langan mablag' quyidagi hollarda qaytariladi:
+    <ul>
+      <li>Ijrochining aybi bilan Xizmat ko'rsatilmagan bo'lsa;</li>
+      <li>to'lov texnik xato tufayli ikki marta amalga oshirilgan bo'lsa.</li>
+    </ul>
+  </li>
+  <li>Xizmat ko'rsatilgan, biroq Foydalanuvchi natijadan qoniqmagan hollarda
+      (jumladan, tahlil natijasida nomuvofiqlik aniqlanmasa) to'langan mablag'
+      qaytarilmaydi. Sinov muddati aynan shu maqsadda beriladi.</li>
+  <li>Qaytarish murojaati <span class="fill">[SUPPORT KANALI]</span> orqali
+      yuboriladi va <span class="fill">[N]</span> ish kuni ichida ko'rib chiqiladi.</li>
+</ol>
+
+<h2>7. API kalit va do'kon ma'lumotlari</h2>
+<ol>
+  <li>Foydalanuvchi API kalitni <b>ixtiyoriy ravishda</b> taqdim etadi va uni
+      Uzum Market kabinetida istalgan vaqtda bekor qilish huquqiga ega.</li>
+  <li>Ijrochi API kalitni shifrlangan holda saqlaydi va uni uchinchi shaxslarga
+      oshkor qilmaydi.</li>
+  <li><b>Ijrochi Foydalanuvchining do'koniga faqat o'qish uchun murojaat qiladi.</b>
+      Tovarlar, narxlar, qoldiqlar, buyurtmalar va boshqa ma'lumotlarga
+      o'zgartirish kiritilmaydi.</li>
+  <li>Foydalanuvchi API kalitni taqdim etish orqali Ijrochiga do'kon
+      ma'lumotlarini Xizmat ko'rsatish maqsadida qayta ishlashga rozilik beradi.</li>
+  <li>Foydalanuvchi API kalitni bekor qilgan taqdirda Xizmat ko'rsatish
+      to'xtatiladi; bu holda to'langan mablag' qaytarilmaydi.</li>
+</ol>
+
+<h2>8. Shaxsiy ma'lumotlar</h2>
+<ol>
+  <li>Ijrochi quyidagi ma'lumotlarni qayta ishlaydi: Telegram identifikatori,
+      ism, foydalanuvchi nomi, telefon raqami, do'kon ma'lumotlari.</li>
+  <li>Qayta ishlash maqsadi — Xizmat ko'rsatish, Foydalanuvchi bilan bog'lanish
+      va to'lovlarni hisobga olish.</li>
+  <li>Ma'lumotlar O'zbekiston Respublikasining shaxsiy ma'lumotlar to'g'risidagi
+      qonunchiligiga muvofiq qayta ishlanadi va saqlanadi.</li>
+  <li>Ma'lumotlar uchinchi shaxslarga uzatilmaydi, qonunda nazarda tutilgan
+      hollar bundan mustasno.</li>
+  <li>Foydalanuvchi <span class="fill">[SUPPORT KANALI]</span> orqali murojaat
+      qilib, o'z ma'lumotlarini o'chirishni talab qilishi mumkin. Ma'lumotlar
+      <span class="fill">[N]</span> kun ichida o'chiriladi.</li>
+  <li>Obuna tugagandan so'ng ma'lumotlar <span class="fill">[N]</span> oy davomida
+      saqlanadi, so'ngra o'chiriladi.</li>
+</ol>
+
+<h2>9. Hisobotlarning maqomi va javobgarlik chegaralari</h2>
+<div class="note">
+  Xizmat tomonidan shakllantirilgan hisobotlar — <b>tahliliy taxminlar</b>
+  bo'lib, aniqlangan holatning yuridik jihatdan tasdiqlangan dalili
+  <b>hisoblanmaydi</b>. Har qanday da'voni Uzum Market'ga taqdim etishdan oldin
+  Foydalanuvchi ma'lumotlarni mustaqil tekshirishi shart.
+</div>
+<ol>
+  <li>Hisobotlar Uzum Market API'sidan olingan ma'lumotlar asosida avtomatik
+      tarzda shakllantiriladi. Manba ma'lumotlaridagi noaniqlik hisobot
+      natijasiga ta'sir qilishi mumkin.</li>
+  <li>Da'vo xati loyihasi — namunaviy hujjat bo'lib, uni yuborish yoki
+      yubormaslik to'g'risidagi qaror va uning oqibatlari uchun javobgarlik
+      butunlay <b>Foydalanuvchi zimmasida</b>.</li>
+  <li>Ijrochi quyidagilar uchun javobgar emas:
+    <ul>
+      <li>Foydalanuvchi tomonidan hisobot asosida qabul qilingan qarorlar
+          oqibatlari;</li>
+      <li>Uzum Market bilan yuzaga keladigan nizolar natijasi;</li>
+      <li>boy berilgan foyda, bilvosita zarar va obro'ga yetkazilgan zarar;</li>
+      <li>Uzum Market API'sining ishlamasligi yoki ma'lumot bermasligi;</li>
+      <li>Telegram xizmatining ishlamay qolishi.</li>
+    </ul>
+  </li>
+  <li>Ijrochining har qanday holatdagi umumiy javobgarligi Foydalanuvchi
+      tomonidan <b>oxirgi obuna davri uchun to'langan summa</b> bilan
+      cheklanadi.</li>
+</ol>
+
+<h2>10. Kafolatlar</h2>
+<ol>
+  <li>Ijrochi <b>hech qanday moliyaviy natijani kafolatlamaydi</b>: jumladan,
+      nomuvofiqliklar albatta topilishini, topilgan summa Uzum Market tomonidan
+      qoplanishini yoki Foydalanuvchi daromadining oshishini.</li>
+  <li>Xizmat «boricha» (as is) asosida ko'rsatiladi. Ijrochi Xizmatning
+      uzluksiz va xatosiz ishlashini kafolatlamaydi.</li>
+  <li>Ijrochi Xizmatni takomillashtirish, funksiyalarni qo'shish yoki olib
+      tashlash huquqiga ega.</li>
+</ol>
+
+<h2>11. Tomonlarning huquq va majburiyatlari</h2>
+<h3>11.1. Ijrochi majburiyatlari</h3>
+<ul>
+  <li>Xizmatni tanlangan tarifga muvofiq ko'rsatish;</li>
+  <li>API kalit va shaxsiy ma'lumotlarni himoyalangan holda saqlash;</li>
+  <li>do'kon ma'lumotlariga faqat o'qish uchun murojaat qilish;</li>
+  <li>Foydalanuvchi murojaatlarini <span class="fill">[N]</span> ish kuni ichida
+      ko'rib chiqish.</li>
+</ul>
+
+<h3>11.2. Foydalanuvchi majburiyatlari</h3>
+<ul>
+  <li>haqiqiy ma'lumotlarni taqdim etish;</li>
+  <li>tanlangan tarif bo'yicha o'z vaqtida to'lash;</li>
+  <li>faqat o'ziga tegishli yoki qonuniy kirish huquqiga ega bo'lgan do'kon
+      API kalitini taqdim etish;</li>
+  <li>hisobotlarni uchinchi shaxslarga tijorat maqsadida qayta sotmaslik;</li>
+  <li>Xizmat ishiga texnik aralashuvga urinmaslik.</li>
+</ul>
+
+<h2>12. Xizmatni to'xtatish</h2>
+<ol>
+  <li>Ijrochi Foydalanuvchi ushbu oferta shartlarini buzgan taqdirda Xizmat
+      ko'rsatishni bir tomonlama to'xtatish huquqiga ega. Bu holda to'langan
+      mablag' qaytarilmaydi.</li>
+  <li>Foydalanuvchi istalgan vaqtda API kalitni bekor qilish yoki
+      <span class="fill">[SUPPORT KANALI]</span> orqali murojaat qilish yo'li
+      bilan Xizmatdan voz kechishi mumkin.</li>
+</ol>
+
+<h2>13. Nizolarni hal etish</h2>
+<ol>
+  <li>Tomonlar nizolarni muzokara yo'li bilan hal etishga harakat qiladilar.</li>
+  <li>Da'vo tartibi majburiy: da'vo <span class="fill">[N]</span> kun ichida
+      ko'rib chiqiladi.</li>
+  <li>Kelishuvga erishilmagan taqdirda nizo O'zbekiston Respublikasi
+      qonunchiligiga muvofiq sud tartibida hal etiladi.</li>
+</ol>
+
+<h2>14. Yakuniy qoidalar</h2>
+<ol>
+  <li>Ushbu ofertada tartibga solinmagan masalalar O'zbekiston Respublikasi
+      qonunchiligi bilan tartibga solinadi.</li>
+  <li>Oferta muddatsiz amal qiladi.</li>
+  <li>Oferta bandlaridan biri haqiqiy emas deb topilsa, qolgan bandlar o'z
+      kuchini saqlaydi.</li>
+</ol>
+
+<h2>15. Ijrochining rekvizitlari</h2>
+<dl class="req">
+  <dt>To'liq nomi</dt><dd><span class="fill">[YaTT / MChJ NOMI]</span></dd>
+  <dt>STIR (INN)</dt><dd><span class="fill">[STIR]</span></dd>
+  <dt>Manzil</dt><dd><span class="fill">[YURIDIK MANZIL]</span></dd>
+  <dt>Hisob raqami</dt><dd><span class="fill">[HISOB RAQAMI]</span></dd>
+  <dt>Bank / MFO</dt><dd><span class="fill">[BANK NOMI, MFO]</span></dd>
+  <dt>Telegram</dt><dd><a href="https://t.me/manejersupport">@manejersupport</a></dd>
+  <dt>Elektron pochta</dt><dd><span class="fill">[EMAIL]</span></dd>
+</dl>
+
+<footer>
+  Tahrir sanasi: <span class="fill">[SANA]</span><br>
+  Ushbu hujjat Telegram-bot orqali xizmat ko'rsatish shartlarini belgilaydi.
+</footer>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Env & secrets
+.env
+*.db
+*.sqlite3
+
+# Alembic lokal
+# (migratsiyalar saqlanadi, faqat lokal baza emas)
+
+# Chiqarilgan hujjatlar
+/generated/
+*.xlsx
+!tests/**/*.xlsx
+*.docx
+!tests/**/*.docx
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.ruff_cache/

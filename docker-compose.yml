@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-uzumbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD kerak}
+      POSTGRES_DB: ${POSTGRES_DB:-uzumbot}
+      TZ: Asia/Tashkent
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Bot bazaga tayyor bo'lgandan keyingina ulanadi
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-uzumbot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    command: ["bot"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-uzumbot}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-uzumbot}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Excel/PDF/pretenziyalar — konteyner qayta yuklansa yo'qolmasin
+      - generated:/app/generated
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: ["web"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-uzumbot}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-uzumbot}
+      PORT: 8000
+    depends_on:
+      db:
+        condition: service_healthy
+      # Migratsiyani `bot` yuritadi — undan keyin ishga tushamiz
+      bot:
+        condition: service_started
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+
+volumes:
+  pgdata:
+  generated:
