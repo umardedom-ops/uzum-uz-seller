@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date, timedelta
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -101,6 +102,83 @@ async def connect_with_api_key(telegram_id: int, api_key: str) -> ConnectResult:
 
     log.info("Ulandi: tg_id=%s do'konlar=%s", telegram_id, [s["id"] for s in shops])
     return ConnectResult(ok=True, shops=shops)
+
+
+@dataclass(frozen=True, slots=True)
+class FirstSyncResult:
+    ok: bool
+    products: int = 0
+    orders: int = 0
+    findings: int = 0
+    error: str | None = None
+
+
+async def run_first_sync(telegram_id: int) -> FirstSyncResult:
+    """Ulangandan keyingi birinchi to'liq sinxronizatsiya va audit.
+
+    Soatlik jadvalni kutmaymiz — seller kalitni bergan zahoti ma'lumot
+    tortila boshlaydi. Aks holda u bir soatgacha bo'sh ekranni ko'radi.
+    """
+    from sqlalchemy import select
+
+    from app.db.models import Order, Product, Shop, User
+    from app.services import audit_runner, sync
+
+    async with session_scope() as session:
+        shop_ids = list(
+            await session.scalars(
+                select(Shop.id)
+                .join(User, Shop.user_id == User.id)
+                .where(User.telegram_id == telegram_id, Shop.is_active.is_(True))
+            )
+        )
+
+    if not shop_ids:
+        return FirstSyncResult(ok=False, error="no_shops")
+
+    findings = 0
+    try:
+        for shop_id in shop_ids:
+            await sync.sync_shop(shop_id, full=True)
+            # Butun faoliyat davri bo'yicha — qoldiq tarixi kerak emas
+            today = date.today()
+            result = await audit_runner.run_audit(
+                shop_id, today - timedelta(days=365), today, cumulative=True
+            )
+            findings += len(result)
+    except Exception as exc:
+        log.exception("Birinchi sync xatosi: tg_id=%s", telegram_id)
+        return FirstSyncResult(ok=False, error=type(exc).__name__)
+
+    async with session_scope() as session:
+        products = 0
+        orders = 0
+        for shop_id in shop_ids:
+            products += len(
+                list(
+                    await session.scalars(
+                        select(Product.id).where(Product.shop_id == shop_id)
+                    )
+                )
+            )
+            orders += len(
+                list(
+                    await session.scalars(
+                        select(Order.id).where(Order.shop_id == shop_id)
+                    )
+                )
+            )
+
+    log.info(
+        "Birinchi sync tugadi: tg_id=%s mahsulot=%s buyurtma=%s farq=%s",
+        telegram_id,
+        products,
+        orders,
+        findings,
+    )
+    return FirstSyncResult(
+        ok=True, products=products, orders=orders, findings=findings
+    )
 
 
 async def save_user(

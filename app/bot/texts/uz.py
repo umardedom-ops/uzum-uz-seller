@@ -93,9 +93,25 @@ TEXTS: dict[str, str] = {
         "✅ <b>Ulandi!</b>\n\n"
         "Topilgan do'konlar: {shops}\n\n"
         "🗑 Kalit shifrlab saqlandi, xabaringiz o'chirildi.\n\n"
-        "⏳ Endi ma'lumotlaringizni yig'ib olaman — bu <b>20-30 daqiqa</b> vaqt oladi. "
-        "Tayyor bo'lganda o'zim xabar beraman.\n\n"
+        "⏳ Ma'lumotlaringizni yig'a boshladim. Do'kon kattaligiga qarab "
+        "bu <b>bir necha daqiqa</b> oladi — tugaganda xabar beraman.\n\n"
         "🎁 Bepul sinov muddatingiz boshlandi: {trial_days} kun."
+    ),
+    "first_sync_found": (
+        "🔍 <b>Tahlil tugadi.</b>\n\n"
+        "Diqqat talab qiladigan <b>{count} ta</b> holat topildi.\n\n"
+        "«💰 Yo'qotilgan pul» bo'limini oching — batafsil ko'rasiz."
+    ),
+    "first_sync_clean": (
+        "✅ <b>Tahlil tugadi.</b>\n\n"
+        "Yig'ildi: {products} ta mahsulot, {orders} ta buyurtma.\n"
+        "Hozircha nomuvofiqlik topilmadi.\n\n"
+        "Har kuni tekshirib boraman — nimadir chiqsa darhol xabar beraman."
+    ),
+    "first_sync_failed": (
+        "⚠️ Ma'lumot yig'ishda muammo bo'ldi.\n\n"
+        "Keyingi avtomatik urinish bir soatdan so'ng. Muammo takrorlansa — "
+        "kalitni kabinetdan qayta yarating."
     ),
     # --- Asosiy menyu ---
     "main_menu": "🏠 <b>Asosiy menyu</b>\n\nNima qilamiz?",

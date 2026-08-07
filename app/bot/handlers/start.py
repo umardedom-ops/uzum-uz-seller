@@ -5,9 +5,11 @@
 """
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Coroutine
 from pathlib import Path
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -40,6 +42,44 @@ router = Router(name="onboarding")
 def _money(amount: int) -> str:
     """149000 → «149 000»."""
     return f"{amount:,}".replace(",", " ")
+
+
+# Fon vazifalariga havola: aks holda Python ularni yig'ishtirib yuborishi
+# mumkin va sinxronizatsiya yarim yo'lda uziladi.
+_background: set[asyncio.Task[None]] = set()
+
+
+def _spawn(coro: Coroutine[object, object, None]) -> None:
+    task = asyncio.create_task(coro)
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+async def _first_sync_and_notify(bot: Bot, telegram_id: int, lang: str) -> None:
+    """Birinchi to'liq sync + audit, so'ng natija haqida xabar.
+
+    Xato bo'lsa ham sellerga aniq xabar boradi — jim qolmaymiz (SPEC 9.6).
+    """
+    try:
+        result = await svc.run_first_sync(telegram_id)
+    except Exception:
+        log.exception("Birinchi sync ishga tushmadi: tg_id=%s", telegram_id)
+        return
+
+    if not result.ok:
+        await bot.send_message(telegram_id, t("first_sync_failed", lang))
+        return
+
+    if result.findings:
+        text = t("first_sync_found", lang, count=result.findings)
+    else:
+        text = t(
+            "first_sync_clean",
+            lang,
+            products=result.products,
+            orders=result.orders,
+        )
+    await bot.send_message(telegram_id, text)
 
 
 async def _lang(state: FSMContext) -> str:
@@ -202,3 +242,7 @@ async def on_api_key(message: Message, state: FSMContext) -> None:
         t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
         reply_markup=main_menu_kb(lang, is_admin=is_admin),
     )
+
+    # Birinchi sinxronizatsiyani darhol boshlaymiz — soatlik jadvalni
+    # kutsak, seller bir soatgacha bo'sh ekranni ko'radi.
+    _spawn(_first_sync_and_notify(message.bot, message.from_user.id, lang))

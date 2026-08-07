@@ -176,6 +176,53 @@ class TestCumulativeLoss:
         assert stock.expected_qty == 40
         assert audit_cumulative_loss(stock) is None
 
+    def test_zero_receipts_with_activity_blocks_result(self) -> None:
+        """⚠️ Haqiqiy do'konda topilgan xato (2026-08-07).
+
+        Uzum ba'zi tovarlar uchun "qabul qilingan" ni 0 qaytaradi,
+        holbuki tovar sotilgan va omborda bor. Formula bo'yicha bu
+        "yo'qolgan tovar" bo'lib chiqadi — soxta natija. Sellerni
+        bunday da'vo bilan Uzumga yubormaymiz.
+        """
+        stock = self._stock(
+            total_received=0, total_returned=5, total_sold=0, qty_now=1
+        )
+        assert stock.diff == 4  # formula 4 dona "yo'qolgan" deydi
+        assert audit_cumulative_loss(stock) is None  # lekin biz yozmaymiz
+
+    def test_zero_receipts_with_sales_blocks_result(self) -> None:
+        stock = self._stock(
+            total_received=0, total_returned=6, total_sold=2, qty_now=0
+        )
+        assert audit_cumulative_loss(stock) is None
+
+    def test_truly_empty_sku_is_not_flagged(self) -> None:
+        """Hech qanday harakat yo'q — bu ham natija bermaydi."""
+        stock = self._stock(
+            total_received=0, total_returned=0, total_sold=0, qty_now=0
+        )
+        assert audit_cumulative_loss(stock) is None
+
+    def test_real_receipts_still_work(self) -> None:
+        """Qabul ma'lumoti bor bo'lsa — audit ishlaydi."""
+        result = audit_cumulative_loss(self._stock())
+        assert result is not None and result.qty == 5
+
+    def test_returns_exceeding_sales_blocks_result(self) -> None:
+        """Sotilmagan tovar qaytmaydi — bunday raqam manba xatosi.
+
+        Haqiqiy do'konda ko'rilgan (2026-08-07): 9 sotilgan, 23 "qaytgan".
+        """
+        stock = self._stock(total_sold=9, total_returned=23, total_received=9, qty_now=0)
+        assert audit_cumulative_loss(stock) is None
+
+    def test_outflow_exceeding_inflow_blocks_result(self) -> None:
+        """Chiqim kirimdan ko'p — qabul ma'lumoti to'liq emas."""
+        stock = self._stock(
+            total_received=5, total_returned=0, total_sold=40, qty_now=10
+        )
+        assert audit_cumulative_loss(stock) is None
+
     def test_incomplete_history_blocks_result(self) -> None:
         """⚠️ Eng muhim himoya: tarix qirqilgan bo'lsa hisoblamaymiz.
 

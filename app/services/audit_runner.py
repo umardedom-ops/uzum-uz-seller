@@ -175,28 +175,43 @@ async def _run_cumulative_audit(
         log.info("Hozirgi qoldiq yo'q — to'plangan audit o'tkazib yuborildi")
         return []
 
-    # Uzum har SKU uchun jami ko'rsatkichlarni O'ZI beradi (quantitySold,
-    # quantityReturned, quantityCreated). Bu bizning yig'indimizdan
-    # ishonchliroq: API tarixi qirqilgan bo'lsa ham to'g'ri qoladi.
+    # "Qabul qilingan" miqdor uchun ikki manba bor. Uzumning
+    # `quantityCreated` maydoni ba'zan 0 qaytaradi (haqiqiy do'konda
+    # tekshirilgan), shuning uchun FBO yuk xatlari asosiy manba,
+    # `quantityCreated` — zaxira.
+    received = await _total_movements(session, shop_id, MovementType.IN)
+
     findings: list[Finding] = []
     for sku, qty_now in latest.items():
         product = products.get(sku)
-        if product is None or product.qty_created_total is None:
-            continue  # Uzum jami raqamlarini bermagan — hisoblamaymiz
+        if product is None:
+            continue
+
+        # FAQAT yuk xatlaridagi `quantityAccepted`. `quantityCreated` ni
+        # ishlatmaymiz: u haqiqiy do'konda ham 0, ham yetib bormagan
+        # yukning rejasini qaytardi — ikkalasi ham soxta natija beradi.
+        total_received = received.get(sku, 0)
 
         stock = CumulativeStock(
             sku=sku,
             qty_now=qty_now,
-            total_received=product.qty_created_total,
+            total_received=total_received,
             total_returned=product.qty_returned_total or 0,
             total_sold=product.qty_sold_total or 0,
             total_written_off=(product.qty_defected or 0)
             + (product.qty_archived or 0),
             unit_cost=_unit_cost(product),
-            history_complete=True,  # manba Uzumning o'zi
+            history_complete=True,  # jami raqamlar manbai — Uzumning o'zi
         )
         if (finding := audit_cumulative_loss(stock)) is not None:
             findings.append(finding)
+
+    if not findings and latest:
+        log.info(
+            "To'plangan audit natija bermadi: shop_id=%s — qabul ma'lumoti "
+            "to'liq emas bo'lishi mumkin",
+            shop_id,
+        )
     return findings
 
 

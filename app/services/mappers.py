@@ -281,6 +281,35 @@ def map_stock(raw: RawRecord) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------- #
 
 
+def map_invoice_products(invoice_id: str, raw: RawRecord) -> list[dict[str, Any]]:
+    """Yuk xati tarkibi → SKU kesimida omborga QABUL QILINGAN miqdor.
+
+    Muhim farq (2026-08-07 da haqiqiy do'konda aniqlangan):
+      * `quantityToStock`  — yuborilgan/rejalashtirilgan miqdor
+      * `quantityAccepted` — ombor **haqiqatda qabul qilgan** miqdor
+
+    5.1 formulasidagi «qabul» — aynan `quantityAccepted`. Rejani hisobga
+    olsak, yetib bormagan yuk xati «yo'qolgan tovar» bo'lib ko'rinadi.
+
+    `purchasePrice` — tannarx, zarar summasini hisoblash uchun.
+    """
+    rows: list[dict[str, Any]] = []
+    for sku in raw.get("skuForInvoiceDtoList") or []:
+        sku_id = as_str(sku.get("id"))
+        if not sku_id:
+            continue
+        rows.append(
+            {
+                "external_id": f"{invoice_id}:{sku_id}",
+                "sku": sku_id,
+                "type": MovementType.IN,
+                "qty": as_int(sku.get("quantityAccepted")),
+                "purchase_price": money(sku.get("purchasePrice")),
+            }
+        )
+    return rows
+
+
 def map_invoice_movement(raw: RawRecord) -> dict[str, Any] | None:
     """`InvoiceInList` → `stock_movements` (tur: IN).
 

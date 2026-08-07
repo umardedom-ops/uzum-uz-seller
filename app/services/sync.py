@@ -193,11 +193,41 @@ async def _sync_stocks(shop_id: int, uzum_shop_id: str, client: UzumApiClient) -
 
 
 async def _sync_invoices(shop_id: int, uzum_shop_id: str, client: UzumApiClient) -> int:
-    """FBO yuk xatlari → ombor harakati (5.1 dagi `qabul`)."""
-    raw = await client.get_supply_invoices(uzum_shop_id)
-    rows = [r for r in (m.map_invoice_movement(item) for item in raw) if r]
+    """FBO yuk xatlari → SKU kesimida omborga qabul (5.1 dagi `qabul`).
+
+    Yuk xati ro'yxati faqat umumiy miqdorni beradi. SKU bo'yicha taqsimot
+    va tannarx uchun har bir yuk xatining tarkibi alohida so'raladi.
+    """
+    invoices = await client.get_supply_invoices(uzum_shop_id)
+    if not invoices:
+        return 0
+
+    movements: list[dict[str, object]] = []
+    costs: dict[str, object] = {}
+
+    for item in invoices:
+        invoice_id = m.as_str(item.get("id"))
+        if not invoice_id:
+            continue
+        try:
+            products = await client.get_invoice_products(uzum_shop_id, int(invoice_id))
+        except Exception:
+            # Bitta yuk xati o'qilmasa qolganlari to'xtamasin
+            log.warning("Yuk xati tarkibi olinmadi: shop=%s invoice=%s", shop_id, invoice_id)
+            continue
+
+        for product in products:
+            for row in m.map_invoice_products(invoice_id, product):
+                price = row.pop("purchase_price", None)
+                if price is not None:
+                    costs.setdefault(row["sku"], price)
+                movements.append(row)
+
     async with session_scope() as session:
-        return await repo.upsert_movements(session, shop_id, rows)
+        count = await repo.upsert_movements(session, shop_id, movements)
+        if costs:
+            await repo.fill_cost_prices(session, shop_id, costs)
+    return count
 
 
 # ---------------------------------------------------------------------- #

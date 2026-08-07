@@ -187,6 +187,37 @@ class CumulativeStock:
     def diff(self) -> int:
         return self.expected_qty - self.qty_now
 
+    @property
+    def data_is_plausible(self) -> bool:
+        """Manba ma'lumoti ishonchli ko'rinadimi.
+
+        ⚠️ 2026-08-07 da haqiqiy do'konda aniqlandi: Uzum ba'zi
+        mahsulotlar uchun "qabul qilingan" miqdorni **0** qaytaradi,
+        holbuki tovar sotilgan va omborda turibdi. Bunday holatda
+        formula "yo'qolgan tovar" deb ko'rsatadi — bu **yolg'on**.
+
+        Qoida: qabul nol bo'lsa-yu, sotuv yoki qoldiq bo'lsa — ma'lumot
+        to'liq emas, hisoblamaymiz (SPEC 9.5).
+        """
+        # Qaytarish sotuvdan ko'p bo'la olmaydi — sotilmagan tovar
+        # qaytmaydi. Bunday raqam manba maydoni biz o'ylagan narsani
+        # anglatmasligini bildiradi (2026-08-07 da haqiqiy do'konda
+        # ko'rilgan: 9 sotilgan, 23 "qaytgan").
+        if self.total_returned > self.total_sold:
+            return False
+
+        # Chiqim kirimdan oshmasligi kerak: sotilgan + qolgan + chiqarilgan
+        # jami qabuldan ko'p bo'lsa, qabul ma'lumoti to'liq emas.
+        outflow = self.total_sold + self.total_written_off + self.qty_now
+        inflow = self.total_received + self.total_returned
+        if outflow > inflow:
+            return False
+
+        if self.total_received > 0:
+            return True
+        # Qabul yo'q, lekin harakat bor — manba ma'lumoti to'liq emas
+        return self.total_sold == 0 and self.qty_now == 0 and self.total_returned == 0
+
 
 def audit_cumulative_loss(stock: CumulativeStock) -> Finding | None:
     """5.1-bis — butun faoliyat davri bo'yicha to'plangan yetishmovchilik.
@@ -197,7 +228,7 @@ def audit_cumulative_loss(stock: CumulativeStock) -> Finding | None:
     bo'lmagan yo'qotishni ko'rsatadi. Sellerni bunday da'vo bilan Uzum
     oldiga yubormaymiz.
     """
-    if not stock.history_complete:
+    if not stock.history_complete or not stock.data_is_plausible:
         return None
 
     diff = stock.diff

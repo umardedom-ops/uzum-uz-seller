@@ -160,6 +160,28 @@ async def upsert_movements(
     return count
 
 
+async def fill_cost_prices(
+    session: AsyncSession, shop_id: int, costs: dict[str, Any]
+) -> int:
+    """Yuk xatidan olingan tannarxni mahsulotga yozadi.
+
+    Faqat bo'sh bo'lsa to'ldiriladi — seller o'zi kiritgan tannarx
+    ustidan yozilmasin.
+    """
+    filled = 0
+    for sku, price in costs.items():
+        if price is None:
+            continue
+        product = await session.scalar(
+            select(Product).where(Product.shop_id == shop_id, Product.sku == sku)
+        )
+        if product is not None and product.cost_price is None:
+            product.cost_price = price
+            filled += 1
+    await session.flush()
+    return filled
+
+
 async def upsert_finance_ops(
     session: AsyncSession, shop_id: int, rows: list[dict[str, Any]]
 ) -> int:
