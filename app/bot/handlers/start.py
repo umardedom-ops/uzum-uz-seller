@@ -29,6 +29,11 @@ log = get_logger(__name__)
 router = Router(name="onboarding")
 
 
+def _money(amount: int) -> str:
+    """149000 → «149 000»."""
+    return f"{amount:,}".replace(",", " ")
+
+
 async def _lang(state: FSMContext) -> str:
     """FSM'dan tanlangan tilni oladi."""
     data = await state.get_data()
@@ -57,7 +62,12 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
 
     s = get_settings()
     await cb.message.edit_text(
-        t("welcome", lang, trial_days=s.trial_days, price=f"{s.price_monthly:,}".replace(",", " ")),
+        t(
+            "welcome",
+            lang,
+            trial_days=s.trial_days,
+            price=_money(s.price_basic),
+        ),
         reply_markup=start_kb(lang),
     )
     await state.set_state(Onboarding.accepting_oferta)
