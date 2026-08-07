@@ -74,7 +74,12 @@ class SubscriptionMiddleware(BaseMiddleware):
         access = await get_access(user.id)
 
         if not access.is_active:
-            await _deny(event, t("sub_expired", lang))
+            # Obuna umuman boshlanmagan bo'lsa — "muddat tugadi" demaymiz,
+            # do'konni ulashni taklif qilamiz.
+            if not access.has_subscription:
+                await _deny(event, t("no_shop", lang), with_tariffs=False)
+            else:
+                await _deny(event, t("sub_expired", lang))
             return None
 
         if not access.can(feature):
@@ -85,13 +90,17 @@ class SubscriptionMiddleware(BaseMiddleware):
         return await handler(event, data)
 
 
-async def _deny(event: TelegramObject, text: str) -> None:
-    """Cheklov xabari — tariflar tugmasi bilan."""
+async def _deny(
+    event: TelegramObject, text: str, *, with_tariffs: bool = True
+) -> None:
+    """Cheklov xabari. Tariflar tugmasi faqat to'lov masalasi bo'lganda."""
     from app.bot.keyboards.billing import tariffs_kb
+
+    markup = tariffs_kb() if with_tariffs else None
 
     if isinstance(event, CallbackQuery):
         await event.answer()
         if event.message is not None:
-            await event.message.answer(text, reply_markup=tariffs_kb())
+            await event.message.answer(text, reply_markup=markup)
     elif isinstance(event, Message):
-        await event.answer(text, reply_markup=tariffs_kb())
+        await event.answer(text, reply_markup=markup)

@@ -64,6 +64,9 @@ class Access:
     plan: Plan
     days_left: int
     on_trial: bool
+    # Obuna umuman boshlanganmi. `False` — do'kon hali ulanmagan, ya'ni
+    # "muddat tugadi" emas, "hali boshlanmagan".
+    has_subscription: bool = True
 
     def can(self, feature: Feature) -> bool:
         if not self.is_active:
@@ -71,7 +74,13 @@ class Access:
         return feature in PLAN_FEATURES.get(self.plan, frozenset())
 
 
-NO_ACCESS = Access(is_active=False, plan=Plan.TRIAL, days_left=0, on_trial=False)
+NO_ACCESS = Access(
+    is_active=False,
+    plan=Plan.TRIAL,
+    days_left=0,
+    on_trial=False,
+    has_subscription=False,
+)
 
 
 async def get_access(telegram_id: int) -> Access:

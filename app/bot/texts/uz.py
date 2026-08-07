@@ -22,9 +22,20 @@ TEXTS: dict[str, str] = {
     # --- Oferta ---
     "oferta": (
         "📄 <b>Foydalanish shartlari</b>\n\n"
-        "Davom etishdan oldin ofertani o'qing:\n{url}\n\n"
-        "Muhim: biz do'koningizga <b>faqat o'qish</b> uchun ulanamiz. "
-        "Hech qachon tovar, narx yoki boshqa ma'lumotni o'zgartirmaymiz."
+        "Asosiy nuqtalar:\n\n"
+        "🔒 Do'koningizga <b>faqat o'qish</b> uchun ulanamiz — tovar, narx "
+        "yoki qoldiqni hech qachon o'zgartirmaymiz.\n\n"
+        "🔑 API kalitingiz <b>shifrlangan</b> holda saqlanadi. Uni istalgan "
+        "payt Uzum kabinetidan bekor qila olasiz.\n\n"
+        "📊 Hisobotlar — <b>tahliliy taxmin</b>, yuridik dalil emas. "
+        "Uzumga da'vo yuborishdan oldin ma'lumotni tekshiring.\n\n"
+        "🎁 <b>3 kun bepul.</b> Yoqmasa — to'lamaysiz.\n\n"
+        "⚖️ Biz Uzum Market bilan bog'liq emasmiz — mustaqil xizmatmiz.\n\n"
+        "Davom etsangiz, shartlarni qabul qilgan hisoblanasiz."
+    ),
+    "btn_oferta_full": "📄 Oferta",
+    "oferta_file_caption": (
+        "📄 To'liq ommaviy oferta.\n\nFaylni ochib, oxirigacha o'qing."
     ),
     "btn_accept": "✅ Qabul qilaman",
     # --- Telefon ---
@@ -88,6 +99,12 @@ TEXTS: dict[str, str] = {
     ),
     # --- Asosiy menyu ---
     "main_menu": "🏠 <b>Asosiy menyu</b>\n\nNima qilamiz?",
+    "main_menu_admin": (
+        "🏠 <b>Asosiy menyu</b>\n\n"
+        "👑 Siz <b>administrator</b>siz — pastda «Admin» tugmasi bor.\n\n"
+        "Nima qilamiz?"
+    ),
+    "menu_admin": "👑 Admin",
     "menu_lost_money": "💰 Yo'qotilgan pul",
     "menu_reports": "📊 Hisobotlar",
     "menu_fbs": "🏷 FBS buyurtmalar",

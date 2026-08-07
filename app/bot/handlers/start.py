@@ -5,11 +5,18 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import (
+    CallbackQuery,
+    FSInputFile,
+    Message,
+    ReplyKeyboardRemove,
+)
 
 from app.bot.keyboards.menu import main_menu_kb
 from app.bot.keyboards.onboarding import (
@@ -23,6 +30,7 @@ from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.services import billing
 from app.services import onboarding as svc
 
 log = get_logger(__name__)
@@ -77,13 +85,38 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
 # --- 3. Boshlash → oferta ---
 @router.callback_query(F.data == "start:go")
 async def on_start(cb: CallbackQuery, state: FSMContext) -> None:
+    """Oferta ekrani.
+
+    Asosiy shartlar bevosita Telegramda ko'rsatiladi — havolaga bog'liq
+    emas. To'liq matnni alohida tugma bilan fayl ko'rinishida olish
+    mumkin, ya'ni server ishlamasa ham seller hujjatni o'qiy oladi.
+    """
     lang = await _lang(state)
     await cb.message.edit_text(
-        t("oferta", lang, url=get_settings().oferta_url),
+        t("oferta", lang),
         reply_markup=oferta_kb(lang),
         disable_web_page_preview=True,
     )
     await cb.answer()
+
+
+@router.callback_query(F.data == "oferta:full")
+async def on_oferta_full(cb: CallbackQuery, state: FSMContext) -> None:
+    """To'liq oferta matnini fayl sifatida yuboradi."""
+    lang = await _lang(state)
+    await cb.answer()
+
+    # app/bot/handlers/start.py → parents[2] = app/
+    path = Path(__file__).resolve().parents[2] / "web" / "static" / "oferta.html"
+    if not path.exists():
+        log.error("Oferta fayli topilmadi: %s", path)
+        await cb.message.answer(t("error", lang))
+        return
+
+    await cb.message.answer_document(
+        FSInputFile(path, filename="oferta.html"),
+        caption=t("oferta_file_caption", lang),
+    )
 
 
 # --- 4. Oferta qabul qilindi → telefon so'rash ---
@@ -164,4 +197,8 @@ async def on_api_key(message: Message, state: FSMContext) -> None:
     await status.edit_text(
         t("shop_connected", lang, shops=shops, trial_days=get_settings().trial_days)
     )
-    await message.answer(t("main_menu", lang), reply_markup=main_menu_kb(lang))
+    is_admin = await billing.is_admin(message.from_user.id)
+    await message.answer(
+        t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
+        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+    )

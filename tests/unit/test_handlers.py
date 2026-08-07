@@ -87,15 +87,31 @@ class TestLanguageChoice:
 
 
 class TestOfertaStep:
-    async def test_shows_oferta_link(self, state: FSMContext) -> None:
-        """Oferta havolasi sozlamadan keladi."""
+    async def test_shows_key_terms_inline(self, state: FSMContext) -> None:
+        """Asosiy shartlar Telegram ichida ko'rinadi — havolaga bog'liq emas.
+
+        Sabab: server internetda bo'lmasa havola ochilmaydi va seller
+        oqimda qotib qoladi.
+        """
         await state.update_data(lang="uz")
         cb = make_callback("start:go")
         await start.on_start(cb, state)
 
         text = sent_text(cb.message.edit_text)
-        assert "http" in text  # havola bor
+        assert "faqat o'qish" in text      # nima qilamiz
+        assert "3 kun bepul" in text       # sinov
+        assert "Uzum Market bilan bog'liq emasmiz" in text  # muhim ogohlantirish
         assert "{" not in text
+
+    async def test_full_text_button_sends_file(self, state: FSMContext) -> None:
+        """To'liq matn fayl sifatida yuboriladi — serversiz ham ishlaydi."""
+        await state.update_data(lang="uz")
+        cb = make_callback("oferta:full")
+        cb.message.answer_document = AsyncMock()
+
+        await start.on_oferta_full(cb, state)
+
+        cb.message.answer_document.assert_called_once()
 
     async def test_accept_moves_to_phone(
         self, state: FSMContext, monkeypatch: pytest.MonkeyPatch
@@ -108,6 +124,32 @@ class TestOfertaStep:
 
         assert await state.get_state() == Onboarding.sharing_phone.state
         cb.message.answer.assert_called()
+
+
+class TestAdminMenu:
+    """Admin o'z huquqini menyuda ko'rishi kerak."""
+
+    def test_admin_sees_extra_button(self) -> None:
+        from app.bot.keyboards.menu import main_menu_kb
+
+        admin_kb = main_menu_kb("uz", is_admin=True)
+        labels = [b.text for row in admin_kb.keyboard for b in row]
+        assert "👑 Admin" in labels
+
+    def test_regular_user_does_not(self) -> None:
+        from app.bot.keyboards.menu import main_menu_kb
+
+        kb = main_menu_kb("uz", is_admin=False)
+        labels = [b.text for row in kb.keyboard for b in row]
+        assert "👑 Admin" not in labels
+
+    def test_admin_button_is_last(self) -> None:
+        """Asosiy bo'limlarni surib yubormasin."""
+        from app.bot.keyboards.menu import main_menu_kb
+
+        kb = main_menu_kb("uz", is_admin=True)
+        assert kb.keyboard[-1][0].text == "👑 Admin"
+        assert kb.keyboard[0][0].text.endswith("Yo'qotilgan pul")
 
 
 class TestApiKeyStep:

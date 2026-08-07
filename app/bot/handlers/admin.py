@@ -13,6 +13,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.texts import LANGS, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.services import billing
@@ -40,8 +41,12 @@ async def cmd_id(message: Message) -> None:
 
 
 @router.message(Command("admin"))
+@router.message(F.text.in_({t("menu_admin", lg) for lg in LANGS}))
 async def cmd_admin(message: Message) -> None:
-    """Admin paneli: statistika va tasdiq kutayotgan to'lovlar."""
+    """Admin paneli: statistika va tasdiq kutayotgan to'lovlar.
+
+    `/admin` buyrug'i yoki menyudagi tugma orqali ochiladi.
+    """
     if not await billing.is_admin(message.from_user.id):
         return  # jim — bu buyruq borligini bildirmaymiz
 

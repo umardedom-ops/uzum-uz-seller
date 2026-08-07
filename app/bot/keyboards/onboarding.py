@@ -31,11 +31,45 @@ def start_kb(lang: str) -> InlineKeyboardMarkup:
 
 
 def oferta_kb(lang: str) -> InlineKeyboardMarkup:
+    """«Oferta» tugmasi — bosilganda hujjat ochiladi.
+
+    Server internetda bo'lsa — to'g'ridan-to'g'ri havola (URL tugma).
+    Bo'lmasa — fayl yuboriladi. Ikkala holatda ham seller hujjatni
+    o'qiy oladi va oqim to'xtamaydi.
+    """
+    url = _public_oferta_url()
+    top = (
+        InlineKeyboardButton(text=t("btn_oferta_full", lang), url=url)
+        if url
+        else InlineKeyboardButton(
+            text=t("btn_oferta_full", lang), callback_data="oferta:full"
+        )
+    )
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=t("btn_accept", lang), callback_data="oferta:accept")]
+            [top],
+            [
+                InlineKeyboardButton(
+                    text=t("btn_accept", lang), callback_data="oferta:accept"
+                )
+            ],
         ]
     )
+
+
+def _public_oferta_url() -> str | None:
+    """Ochiq internetdan ochiladigan oferta havolasi (bo'lmasa None).
+
+    `localhost`, `127.0.0.1` va namunaviy manzillar telefondan
+    ochilmaydi — ular havola sifatida ishlatilmaydi.
+    """
+    from app.core.config import get_settings
+
+    url = (get_settings().oferta_url or "").strip()
+    if not url.startswith("https://"):
+        return None
+    blocked = ("localhost", "127.0.0.1", "example.com", "sizning-domeningiz")
+    return None if any(bad in url for bad in blocked) else url
 
 
 def phone_kb(lang: str) -> ReplyKeyboardMarkup:
