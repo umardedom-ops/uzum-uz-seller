@@ -4,10 +4,10 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, UtcDateTime
 
 
 class Lang(str, enum.Enum):
@@ -75,8 +75,8 @@ class Subscription(Base, TimestampMixin):
         Enum(SubscriptionStatus, native_enum=False, length=16),
         default=SubscriptionStatus.TRIAL,
     )
-    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    paid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    trial_ends_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    paid_until: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     user: Mapped[User] = relationship(back_populates="subscription")
 

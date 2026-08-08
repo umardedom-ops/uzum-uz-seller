@@ -10,10 +10,10 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Enum, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, UtcDateTime
 from app.db.models.user import Plan
 
 
@@ -49,4 +49,4 @@ class Payment(Base, TimestampMixin):
     external_id: Mapped[str | None] = mapped_column(String(255))
     note: Mapped[str | None] = mapped_column(String(512))
     confirmed_by: Mapped[int | None] = mapped_column()  # admin telegram_id
-    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    paid_at: Mapped[datetime | None] = mapped_column(UtcDateTime)

@@ -10,7 +10,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
-    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -20,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.security import decrypt, encrypt
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, UtcDateTime
 
 
 class AuthType(str, enum.Enum):
@@ -44,8 +43,8 @@ class Shop(Base, TimestampMixin):
     uzum_shop_id: Mapped[str] = mapped_column(String(32), index=True)
     title: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    first_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    connected_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    first_sync_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     user: Mapped[User] = relationship(back_populates="shops")  # noqa: F821
     credentials: Mapped[list[ShopCredential]] = relationship(
@@ -71,9 +70,9 @@ class ShopCredential(Base, TimestampMixin):
     )
     # Fernet bilan shifrlangan. To'g'ridan-to'g'ri o'qimang — `secret` dan foydalaning.
     encrypted_secret: Mapped[str] = mapped_column(String(1024))
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     is_valid: Mapped[bool] = mapped_column(Boolean, default=True)
-    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_checked_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     shop: Mapped[Shop] = relationship(back_populates="credentials")
 

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.types import TypeDecorator
 
 from app.core.config import get_settings
 
@@ -23,6 +24,51 @@ from app.core.config import get_settings
 def utcnow() -> datetime:
     """Vaqt zonasi bilan hozirgi UTC (naive datetime ishlatmaymiz)."""
     return datetime.now(UTC)
+
+
+class UtcDateTime(TypeDecorator):
+    """Har doim vaqt zonasi bor datetime qaytaradigan ustun turi.
+
+    ❗ Nima uchun kerak: SQLite vaqt zonasini SAQLAMAYDI. `DateTime(
+    timezone=True)` deb e'lon qilinsa ham, bazadan **naive** datetime
+    qaytadi. `utcnow()` esa aware. Ikkalasini taqqoslash
+    `TypeError: can't compare offset-naive and offset-aware datetimes`
+    beradi.
+
+    2026-08-08 da shu xato botni **har bir xabarda** yiqitgan edi:
+    obuna tekshiruvi (`Subscription.is_active_at`) middleware'da ishlaydi,
+    ya'ni `/start` ham, boshqa tugma ham javob bermasdi. Xato faqat
+    obunasi bor foydalanuvchida chiqqani uchun sezilmay qolgan.
+
+    PostgreSQL da bunday muammo yo'q — shu sabab lokalda va serverda
+    boshqacha xatti-harakat bo'lardi. Bu tur ikkalasini tenglashtiradi.
+    """
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(
+        self, value: datetime | None, dialect: object
+    ) -> datetime | None:
+        """Bazaga yozishdan oldin — doim UTC ga keltiramiz."""
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+
+    def process_result_value(
+        self, value: datetime | None, dialect: object
+    ) -> datetime | None:
+        """Bazadan o'qigach — zonasi yo'q bo'lsa UTC deb belgilaymiz.
+
+        Yozishda doim UTC ga keltirilgani uchun bu taxmin xavfsiz.
+        """
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
 
 class Base(DeclarativeBase):
@@ -33,10 +79,10 @@ class TimestampMixin:
     """`created_at` / `updated_at` — deyarli har jadvalga kerak."""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        UtcDateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UtcDateTime,
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,

@@ -12,7 +12,6 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Date,
-    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -24,7 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, UtcDateTime
 
 Money = Numeric(18, 2)
 
@@ -83,7 +82,7 @@ class Discrepancy(Base, TimestampMixin):
     )
     # Hisob qanday chiqqani — sellerga tushuntirish uchun
     details: Mapped[str | None] = mapped_column(Text)
-    detected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    detected_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     claim_doc_path: Mapped[str | None] = mapped_column(String(512))
     claim_id: Mapped[int | None] = mapped_column(
         ForeignKey("claims.id", ondelete="SET NULL")
@@ -104,7 +103,7 @@ class Claim(Base, TimestampMixin):
     total_amount: Mapped[Decimal | None] = mapped_column(Money)
     period_from: Mapped[date | None] = mapped_column(Date)
     period_to: Mapped[date | None] = mapped_column(Date)
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     result: Mapped[ClaimResult] = mapped_column(
         Enum(ClaimResult, native_enum=False, length=16), default=ClaimResult.PENDING
     )

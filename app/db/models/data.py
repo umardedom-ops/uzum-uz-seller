@@ -13,7 +13,6 @@ from decimal import Decimal
 from sqlalchemy import (
     Boolean,
     Date,
-    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -24,7 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, UtcDateTime
 
 # Pul — Numeric, float EMAS. Float bilan hisoblangan zarar da'voda tortishuv
 # keltirib chiqaradi.
@@ -119,8 +118,8 @@ class Order(Base, TimestampMixin):
     # Qaytarish sababi — 5.2 va sabab tahlili uchun
     return_cause: Mapped[str | None] = mapped_column(String(255))
     qty_returned: Mapped[int | None] = mapped_column(Integer)
-    created_at_uzum: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at_uzum: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    closed_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class Return(Base, TimestampMixin):
@@ -140,8 +139,8 @@ class Return(Base, TimestampMixin):
     reason: Mapped[str | None] = mapped_column(String(512))
     status: Mapped[str | None] = mapped_column(String(64))
     # 5.2 auditining yuragi: qaytdi, lekin omborga tushdimi?
-    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    returned_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class StockSnapshot(Base, TimestampMixin):
@@ -167,7 +166,7 @@ class StockSnapshot(Base, TimestampMixin):
     qty: Mapped[int] = mapped_column(Integer, default=0)
     warehouse: Mapped[str] = mapped_column(String(64), default="FBO")
     captured_on: Mapped[date] = mapped_column(Date, index=True)
-    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    captured_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class StockMovement(Base, TimestampMixin):
@@ -190,7 +189,7 @@ class StockMovement(Base, TimestampMixin):
         Enum(MovementType, native_enum=False, length=16)
     )
     qty: Mapped[int] = mapped_column(Integer, default=0)
-    happened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    happened_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class FinanceOp(Base, TimestampMixin):
@@ -210,7 +209,7 @@ class FinanceOp(Base, TimestampMixin):
     amount: Mapped[Decimal | None] = mapped_column(Money)
     description: Mapped[str | None] = mapped_column(String(512))
     sku: Mapped[str | None] = mapped_column(String(64), index=True)
-    happened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    happened_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class Compensation(Base, TimestampMixin):
@@ -230,4 +229,4 @@ class Compensation(Base, TimestampMixin):
     qty: Mapped[int] = mapped_column(Integer, default=0)
     amount: Mapped[Decimal | None] = mapped_column(Money)
     status: Mapped[str | None] = mapped_column(String(64))
-    happened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    happened_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
