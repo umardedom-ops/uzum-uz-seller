@@ -197,8 +197,8 @@ darhol ishga tushadi.
 > Ro'yxatdan o'tish: `seller.uzum.uz/seller/signup` → biznes turi
 > **«Нет юрлица»** → hujjat/INN kerak emas. Do'kon yaratilmaydi.
 >
-> Yagona raqam: `+998 99 262 01 01`. Elore Parfume ga xodim qilib
-> qo'shildi va ishladi.
+> Yagona raqam `.env` dagi `EMPLOYEE_PHONE` da. Test do'koniga xodim
+> qilib qo'shildi va ishladi.
 
 > **Tekshirilmagan imkoniyat:** `GET /v1/product/shop/{shopId}` javobidagi
 > `skuList[].quantityActive` FBO qoldig'i bo'lishi mumkin. Agar shunday

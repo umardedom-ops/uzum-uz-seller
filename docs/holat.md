@@ -79,7 +79,7 @@ Batafsil: `docs/sverka/xulosa.md`.
 ## Ma'lumotlar bazasi holati
 
 ```
-Foydalanuvchi: 2 (8266195913 — admin, 7889583510 — seller)
+Foydalanuvchi: 2 (1 admin, 1 seller)
 Do'kon: AZIKO (7973), AZIKO PLAST (25273)
 Mahsulot: 232 · Tannarxi bor: 228
 Ombor harakati: 378 · Buyurtma: 539 · Qaytarish: 2

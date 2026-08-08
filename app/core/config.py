@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # --- Onboarding (SPEC 7) ---
     # Seller kabinetida "Xodim" sifatida qo'shadigan BIZNING raqamimiz.
-    # Videodagi raqobatchi: +998 33 510 43 53. O'zimiznikini .env dan olamiz.
+    # Raqobatchi ham shu usuldan foydalanadi. Raqam .env dan olinadi.
     employee_phone: str = Field("+998 XX XXX XX XX", alias="EMPLOYEE_PHONE")
     employee_name: str = Field("Seller yordamchisi", alias="EMPLOYEE_NAME")
     # So'raladigan rol — SPEC 3.1 ga qarang (Финансовый менеджер, Менеджер emas)
