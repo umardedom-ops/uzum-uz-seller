@@ -4,6 +4,7 @@ from __future__ import annotations
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.texts import t
+from app.core.config import get_settings
 from app.db.models import Plan
 
 
@@ -17,6 +18,43 @@ def tariffs_kb(lang: str = "uz") -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def onboarding_plans_kb(lang: str) -> InlineKeyboardMarkup:
+    """Do'kon ulangandan keyingi tarif tanlash — 3 variant.
+
+    Bepul variant birinchi turadi: seller uni albatta ko'rsin va
+    "pul so'rayapti" degan taassurot bilan chiqib ketmasin. Lekin
+    tanlash **majburiy** — tanlamaguncha menyu ochilmaydi.
+    """
+    s = get_settings()
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("btn_plan_free", lang, trial_days=s.trial_days),
+                    callback_data="onboarding:plan:free",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("btn_plan_basic", lang, price=_money(s.price_basic)),
+                    callback_data=f"onboarding:plan:{Plan.BASIC.value}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("btn_plan_pro", lang, price=_money(s.price_pro)),
+                    callback_data=f"onboarding:plan:{Plan.PRO.value}",
+                )
+            ],
+        ]
+    )
+
+
+def _money(value: int) -> str:
+    """149000 → «149 000». Tugmada uzun raqam o'qilmaydi."""
+    return f"{value:,}".replace(",", " ")
 
 
 def plans_kb(lang: str) -> InlineKeyboardMarkup:

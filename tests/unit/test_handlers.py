@@ -221,4 +221,31 @@ class TestApiKeyStep:
 
         text = sent_text(status.edit_text)
         assert "Elore Parfume" in text
-        assert await state.get_state() == Onboarding.done.state
+        # Do'kon ulangach darhol menyu emas — avval tarif tanlanadi
+        assert await state.get_state() == Onboarding.choosing_plan.state
+
+    async def test_offers_three_plans_after_connect(
+        self, state: FSMContext, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Tanlash majburiy: bepul + 2 ta pullik tarif ko'rsatiladi."""
+        from app.services.onboarding import ConnectResult
+
+        monkeypatch.setattr(
+            start.svc,
+            "connect_with_api_key",
+            AsyncMock(return_value=ConnectResult(ok=True, shops=[{"id": "1"}])),
+        )
+        await state.update_data(lang="uz")
+
+        msg = self._message("A" * 40)
+        msg.answer = AsyncMock(return_value=AsyncMock())
+
+        await start.on_api_key(msg, state)
+
+        # Oxirgi xabar — tarif tanlash klaviaturasi bilan
+        kb = msg.answer.await_args.kwargs["reply_markup"]
+        labels = [b.text for row in kb.inline_keyboard for b in row]
+        assert len(labels) == 3
+        assert any("Bepul" in x for x in labels)
+        assert any("Basic" in x for x in labels)
+        assert any("Pro" in x for x in labels)

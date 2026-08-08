@@ -58,9 +58,13 @@ class TestSubscriptionActive:
 
 
 class TestEffectivePlan:
-    def test_trial_gives_pro(self) -> None:
-        """Sinov davrida to'liq imkoniyat — qiymatni ko'rsatish uchun."""
-        assert sub().effective_plan(NOW) is Plan.PRO
+    def test_trial_gives_basic(self) -> None:
+        """Sinov davrida Basic — Pro emas.
+
+        Sinovda hamma narsa ochiq bo'lsa, sellerda to'lashga sabab
+        qolmaydi. Basic asosiy qiymatni ko'rsatadi, Pro to'lovdan keyin.
+        """
+        assert sub().effective_plan(NOW) is Plan.BASIC
 
     def test_paid_basic(self) -> None:
         item = sub(plan=Plan.BASIC, paid_until=NOW + timedelta(days=15))

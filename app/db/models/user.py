@@ -96,12 +96,16 @@ class Subscription(Base, TimestampMixin):
     def effective_plan(self, moment: datetime) -> Plan:
         """Shu paytda qaysi tarif amal qilyapti.
 
-        Sinov davrida PRO — seller to'liq imkoniyatni ko'radi.
+        Sinov davrida **BASIC** beriladi: seller mahsulotning asosiy
+        qiymatini ko'radi, lekin Pro imkoniyatlari to'lovdan keyin ochiladi.
+        (2026-08-08 gacha sinovda PRO berilardi — bunda sellerning to'lashga
+        sababi qolmasdi.)
+
         To'lov muddati o'tgan bo'lsa, sinov hali tugamagan bo'lishi ham
         mumkin; shu sabab ikkalasi alohida tekshiriladi.
         """
         if self.paid_until is not None and self.paid_until > moment:
             return self.plan if self.plan in (Plan.BASIC, Plan.PRO) else Plan.BASIC
         if self.trial_ends_at is not None and self.trial_ends_at > moment:
-            return Plan.PRO
+            return Plan.BASIC
         return Plan.TRIAL  # muddati tugagan — kirish yopiq

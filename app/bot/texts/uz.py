@@ -276,6 +276,30 @@ TEXTS: dict[str, str] = {
         "🎁 <b>{trial} kun bepul</b> — Pro darajasida, cheklovsiz."
     ),
     "plan_current": "Hozirgi tarif: <b>{plan}</b> · {days} kun qoldi",
+    # --- Onboarding: tarif tanlash (do'kon ulangandan keyin) ---
+    "choose_plan": (
+        "💎 <b>Tarifni tanlang</b>\n\n"
+        "Do'koningiz ulandi. Endi qanday ishlashimizni tanlang:\n\n"
+        "🎁 <b>Bepul — {trial_days} kun</b>\n"
+        "Basic imkoniyatlari, to'lovsiz. Karta so'ralmaydi.\n\n"
+        "📦 <b>Basic — {price_basic} so'm/oy</b>\n"
+        "Yo'qotishlarni topish, Excel dalil, pretenziya va kelishuv.\n\n"
+        "🚀 <b>Pro — {price_pro} so'm/oy</b>\n"
+        "Basic'dagi hammasi + yunit-iqtisodiyot, FBS yorliqlar, "
+        "qoldiq va blok ogohlantirishlari.\n\n"
+        "Davom etish uchun bittasini tanlang."
+    ),
+    "btn_plan_free": "🎁 Bepul boshlash ({trial_days} kun)",
+    "btn_plan_basic": "📦 Basic — {price} so'm/oy",
+    "btn_plan_pro": "🚀 Pro — {price} so'm/oy",
+    "plan_free_started": (
+        "🎁 <b>Bepul muddat boshlandi — {trial_days} kun.</b>\n\n"
+        "Basic imkoniyatlari ochiq. Istalgan payt /tarif orqali "
+        "Pro'ga o'tishingiz mumkin."
+    ),
+    "plan_must_choose": (
+        "💎 Avval tarifni tanlang — yuqoridagi tugmalardan birini bosing."
+    ),
     "btn_tariffs": "💎 Tariflar",
     "btn_buy_basic": "Basic tarifni olish",
     "btn_buy_pro": "Pro tarifni olish",

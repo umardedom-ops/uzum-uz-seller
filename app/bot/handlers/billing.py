@@ -20,6 +20,8 @@ from aiogram.types import (
 )
 
 from app.bot.keyboards.billing import click_pay_kb, manual_paid_kb, plans_kb
+from app.bot.keyboards.menu import main_menu_kb
+from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -32,6 +34,46 @@ router = Router(name="billing")
 
 # Telegram Payments summani eng kichik birlikda kutadi (tiyin)
 _MINOR_UNITS = 100
+
+
+@router.callback_query(F.data.startswith("onboarding:plan:"))
+async def on_onboarding_plan(cb: CallbackQuery, state: FSMContext) -> None:
+    """Onboardingdagi tarif tanlovi — 3 variantdan biri.
+
+    Bepul tanlansa menyuga o'tamiz (sinov do'kon ulanganda allaqachon
+    boshlangan). Pullik tanlansa odatdagi to'lov oqimiga o'tamiz —
+    to'lov tugagach menyu ochiladi.
+    """
+    lang = await _lang(state)
+    choice = cb.data.rsplit(":", 1)[1]
+
+    if choice != "free":
+        # `on_buy` shu ko'rinishdagi callback'ni kutadi
+        cb = cb.model_copy(update={"data": f"billing:buy:{choice}"})
+        await on_buy(cb, state)
+        return
+
+    await cb.answer()
+    await state.set_state(Onboarding.done)
+    await cb.message.edit_reply_markup(reply_markup=None)
+    await cb.message.answer(
+        t("plan_free_started", lang, trial_days=get_settings().trial_days)
+    )
+
+    is_admin = await billing.is_admin(cb.from_user.id)
+    await cb.message.answer(
+        t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
+        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+    )
+
+
+@router.message(Onboarding.choosing_plan)
+async def on_message_while_choosing(message: Message, state: FSMContext) -> None:
+    """Tarif tanlanmasdan yozilgan xabar — eslatib qo'yamiz.
+
+    Tanlash majburiy: bu bosqichda menyu tugmalari hali yo'q.
+    """
+    await message.answer(t("plan_must_choose", await _lang(state)))
 
 
 @router.message(Command("tarif", "tariff", "pay"))

@@ -20,7 +20,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
-from app.bot.keyboards.menu import main_menu_kb
+from app.bot.keyboards.billing import onboarding_plans_kb
 from app.bot.keyboards.onboarding import (
     how_to_kb,
     lang_kb,
@@ -32,7 +32,6 @@ from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.services import billing
 from app.services import onboarding as svc
 
 log = get_logger(__name__)
@@ -232,15 +231,25 @@ async def on_api_key(message: Message, state: FSMContext) -> None:
         await status.edit_text(t(key, lang))
         return
 
-    await state.set_state(Onboarding.done)
-    shops = ", ".join(s["title"] or s["id"] for s in result.shops)
+    settings = get_settings()
+    # `.get()` — nomsiz do'kon uchraydi va yo'q kalit botni yiqitmasin
+    shops = ", ".join(s.get("title") or s.get("id", "?") for s in result.shops)
     await status.edit_text(
-        t("shop_connected", lang, shops=shops, trial_days=get_settings().trial_days)
+        t("shop_connected", lang, shops=shops, trial_days=settings.trial_days)
     )
-    is_admin = await billing.is_admin(message.from_user.id)
+
+    # Tarif tanlanmaguncha menyu ochilmaydi (SPEC 7). Seller do'koni
+    # ulanganini ko'rgach tanlaydi — shu payt qiymat allaqachon ko'rinadi.
+    await state.set_state(Onboarding.choosing_plan)
     await message.answer(
-        t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
-        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+        t(
+            "choose_plan",
+            lang,
+            trial_days=settings.trial_days,
+            price_basic=f"{settings.price_basic:,}".replace(",", " "),
+            price_pro=f"{settings.price_pro:,}".replace(",", " "),
+        ),
+        reply_markup=onboarding_plans_kb(lang),
     )
 
     # Birinchi sinxronizatsiyani darhol boshlaymiz — soatlik jadvalni

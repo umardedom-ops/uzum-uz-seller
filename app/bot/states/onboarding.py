@@ -1,6 +1,10 @@
 """Onboarding oqimi holatlari (SPEC 7).
 
-til → oferta → telefon → yo'riqnoma → do'kon ID → asosiy menyu
+til → oferta → telefon → yo'riqnoma → API kalit → tarif → asosiy menyu
+
+Tarif tanlash do'kon ulangandan **keyin** turadi: seller avval o'z
+do'koni ulanganini ko'radi, keyin tarif tanlaydi. Tanlamaguncha asosiy
+menyu ochilmaydi.
 """
 from __future__ import annotations
 
@@ -13,4 +17,5 @@ class Onboarding(StatesGroup):
     sharing_phone = State()
     reading_instruction = State()
     entering_api_key = State()
+    choosing_plan = State()
     done = State()
