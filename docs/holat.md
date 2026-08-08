@@ -93,15 +93,52 @@ Qoldiq surati: 464 · Farqlar: 0
 > yo'q. Bu xato emas. Yangi davrlar bo'yicha audit bo'sh chiqishi
 > normal — ma'lumot yo'qligi endi ochiq aytiladi (`data_health`).
 
-## Ishga tushirish
+## Ishlab turgan server (2026-08-08 dan)
+
+Bot **VPS'da doimiy ishlaydi** — lokal ishga tushirish endi shart emas.
+
+```
+Server:   46.62.199.124 (Ubuntu 24.04)
+Papka:    /opt/uzumbot
+Loyiha:   docker compose -p uzumbot   (db · bot · web)
+Baza:     PostgreSQL 16, `uzumbot_pgdata` volume ichida
+```
+
+> ⚠️ Serverda ERPNext va n8n ham ishlaydi. Xotira tang (3.8 GB), shuning
+> uchun 2 GB swap qo'shilgan. Yangi og'ir xizmat qo'shishdan oldin
+> `free -m` ni tekshiring.
+
+Foydali buyruqlar (SSH orqali):
+
+```bash
+cd /opt/uzumbot && docker compose -p uzumbot logs bot --tail 50
+```
+
+```bash
+cd /opt/uzumbot && docker compose -p uzumbot restart bot
+```
+
+### Avtomatlashtirilgan
+
+| Ish | Jadval | Skript |
+|---|---|---|
+| GitHub'dan avtodeploy | har 5 daqiqa | `/opt/uzumbot/deploy.sh` |
+| Baza zaxirasi (14 kun) | har kuni 03:00 | `/opt/uzumbot/backup.sh` |
+
+`master` ga push qilinsa, server 5 daqiqa ichida o'zi yangilanadi.
+Qurish xato bersa **eski nusxa ishlab turaveradi** — buzuq kod botni
+yiqitmaydi. Loglar: `/var/log/uzumbot-deploy.log`,
+`/var/log/uzumbot-backup.log`. Zaxiralar: `/opt/uzumbot/backups/`.
+
+### Lokal ishga tushirish (kerak bo'lsa)
 
 ```bash
 cd "E:\IT loihalar\UZUMUZBOT"
-.venv\Scripts\python.exe -m app.bot.main                                    # bot
-.venv\Scripts\python.exe -m uvicorn app.web.click_api:app --port 8000       # webhook
+.venv\Scripts\python.exe -m app.bot.main
 ```
 
-> Suhbat tugaganda bu jarayonlar to'xtaydi — qayta ishga tushirish kerak.
+> ❗ Serverdagi bot ishlab turganda lokalni yoqmang — bitta token bilan
+> ikki nusxa ishlay olmaydi, Telegram `Conflict` xatosi beradi.
 
 ## Keyingi qadamlar (muhimlik tartibida)
 
