@@ -6,31 +6,30 @@ TEXTS: dict[str, str] = {
     "lang_uz": "🇺🇿 O'zbek",
     "lang_ru": "🇷🇺 Русский",
     # --- Xush kelibsiz ---
+    # Qisqa bo'lishi shart: bu birinchi ekran, uzun matn o'qilmaydi.
+    # Narx bu yerda YO'Q — u keyingi ekranda va tugmalarda, takrorlanmasin.
     "welcome": (
-        "👋 Xush kelibsiz!\n\n"
-        "Men Uzum Market sellerlari uchun botman. Vazifam bitta:\n"
-        "<b>Uzum sizga to'lamagan pulni topib berish.</b>\n\n"
-        "Har kuni do'koningizni tekshiraman va topaman:\n"
-        "📦 Omborda yo'qolgan tovarlaringizni\n"
-        "↩️ Qaytib kelmagan qaytarishlarni\n"
-        "💸 Ortiqcha ushlangan komissiyani\n\n"
-        "Topilgan zarar uchun <b>Excel dalil</b> va <b>tayyor pretenziya</b> beraman — "
-        "Uzumga yuborasiz, pulingizni qaytarib olasiz.\n\n"
-        "🎁 <b>{trial_days} kun bepul</b>, keyin {price} so'm/oy."
+        "👋 <b>Uzum sizga to'lamagan pulni topaman.</b>\n\n"
+        "Har kuni do'koningizni tekshiraman:\n"
+        "📦 omborda yo'qolgan tovar\n"
+        "↩️ qaytib kelmagan qaytarish\n"
+        "💸 ortiqcha ushlangan komissiya\n\n"
+        "Topilganiga <b>Excel dalil</b> va <b>tayyor pretenziya</b> beraman — "
+        "Uzumga yuborasiz, pulingizni qaytarasiz."
     ),
     "btn_start": "🚀 Boshlash",
     # --- Oferta ---
+    # Bandlar bir qatorli: uzun matnni hech kim o'qimaydi, lekin har
+    # bir band muhim va tushib qolmasligi kerak.
     "oferta": (
         "📄 <b>Foydalanish shartlari</b>\n\n"
-        "Asosiy nuqtalar:\n\n"
-        "🔒 Do'koningizga <b>faqat o'qish</b> uchun ulanamiz — tovar, narx "
-        "yoki qoldiqni hech qachon o'zgartirmaymiz.\n\n"
-        "🔑 API kalitingiz <b>shifrlangan</b> holda saqlanadi. Uni istalgan "
-        "payt Uzum kabinetidan bekor qila olasiz.\n\n"
-        "📊 Hisobotlar — <b>tahliliy taxmin</b>, yuridik dalil emas. "
-        "Uzumga da'vo yuborishdan oldin ma'lumotni tekshiring.\n\n"
-        "🎁 <b>3 kun bepul.</b> Yoqmasa — to'lamaysiz.\n\n"
-        "⚖️ Biz Uzum Market bilan bog'liq emasmiz — mustaqil xizmatmiz.\n\n"
+        "🔒 Do'konga <b>faqat o'qish</b> uchun ulanamiz — hech narsani "
+        "o'zgartirmaymiz\n\n"
+        "🔑 API kalitingiz <b>shifrlangan</b>, istalgan payt bekor qila "
+        "olasiz\n\n"
+        "📊 Hisobot — <b>tahliliy taxmin</b>, yuridik dalil emas. Da'vodan "
+        "oldin tekshiring\n\n"
+        "⚖️ Biz Uzum Market bilan bog'liq emasmiz — mustaqil xizmatmiz\n\n"
         "Davom etsangiz, shartlarni qabul qilgan hisoblanasiz."
     ),
     "btn_oferta_full": "📄 Oferta",
@@ -89,13 +88,12 @@ TEXTS: dict[str, str] = {
         "⚠️ Kalit ishladi, lekin <b>do'kon topilmadi</b>.\n\n"
         "Kabinetda do'kon yaratilganini tekshiring."
     ),
+    # Sinov haqidagi gap OLIB TASHLANDI: tarif endi oldinroq tanlanadi
+    # va pullik tanlagan sellerga "sinov boshlandi" deyish noto'g'ri.
     "shop_connected": (
-        "✅ <b>Ulandi!</b>\n\n"
-        "Topilgan do'konlar: {shops}\n\n"
+        "✅ <b>Ulandi:</b> {shops}\n\n"
         "🗑 Kalit shifrlab saqlandi, xabaringiz o'chirildi.\n\n"
-        "⏳ Ma'lumotlaringizni yig'a boshladim. Do'kon kattaligiga qarab "
-        "bu <b>bir necha daqiqa</b> oladi — tugaganda xabar beraman.\n\n"
-        "🎁 Bepul sinov muddatingiz boshlandi: {trial_days} kun."
+        "⏳ Ma'lumot yig'ilyapti — bir necha daqiqa. Tugaganda xabar beraman."
     ),
     "first_sync_found": (
         "🔍 <b>Tahlil tugadi.</b>\n\n"
@@ -135,8 +133,8 @@ TEXTS: dict[str, str] = {
     "period_week": "7 kun",
     "period_month": "Shu oy",
     "period_prev_month": "O'tgan oy",
-    "period_all": "Butun tarix",
-    "period_custom": "📅 Boshqa davr (kalendar)",
+    "period_all": "📊 Butun tarix",
+    "period_custom": "📅 Kalendar",
     "btn_change_period": "📅 Davrni o'zgartirish",
     "pick_start_date": "📅 <b>Boshlanish sanasini tanlang</b>",
     "pick_end_date": "📅 <b>Tugash sanasini tanlang</b>\n\nBoshlanish: {start}",
@@ -158,7 +156,7 @@ TEXTS: dict[str, str] = {
     "losses_header_short": "💰 <b>Topilgan yo'qotishlar</b>",
     "losses_total": "Jami: <b>{total} so'm</b>",
     "btn_excel": "📄 Excel yuklab olish",
-    "btn_claim": "📝 Pretenziya tayyorlash",
+    "btn_claim": "📝 Pretenziya",
     "excel_caption": (
         "📄 Dalil hisoboti. Shtrix kodsiz qatorlar sariq bilan belgilangan — "
         "ular bo'yicha da'vo qilish qiyin."
@@ -278,20 +276,19 @@ TEXTS: dict[str, str] = {
     "plan_current": "Hozirgi tarif: <b>{plan}</b> · {days} kun qoldi",
     # --- Onboarding: tarif tanlash (do'kon ulangandan keyin) ---
     "choose_plan": (
+        # Narx bu yerda takrorlanmaydi — u tugmalarda. Matn faqat
+        # tariflar ORASIDAGI FARQNI aytadi, shuning uchun qisqa.
         "💎 <b>Tarifni tanlang</b>\n\n"
-        "Qanday ishlashimizni tanlang:\n\n"
-        "🎁 <b>Bepul — {trial_days} kun</b>\n"
-        "Basic imkoniyatlari, to'lovsiz. Karta so'ralmaydi.\n\n"
-        "📦 <b>Basic — {price_basic} so'm/oy</b>\n"
-        "Yo'qotishlarni topish, Excel dalil, pretenziya va kelishuv.\n\n"
-        "🚀 <b>Pro — {price_pro} so'm/oy</b>\n"
-        "Basic'dagi hammasi + yunit-iqtisodiyot, FBS yorliqlar, "
-        "qoldiq va blok ogohlantirishlari.\n\n"
-        "Davom etish uchun bittasini tanlang."
+        "🎁 <b>Bepul</b> · {trial_days} kun\n"
+        "Karta so'ralmaydi\n\n"
+        "📦 <b>Basic</b>\n"
+        "Yo'qotishlarni topish · Excel dalil · pretenziya\n\n"
+        "🚀 <b>Pro</b>\n"
+        "Basic + yunit-iqtisodiyot · FBS yorliqlar · ogohlantirishlar"
     ),
-    "btn_plan_free": "🎁 Bepul boshlash ({trial_days} kun)",
-    "btn_plan_basic": "📦 Basic — {price} so'm/oy",
-    "btn_plan_pro": "🚀 Pro — {price} so'm/oy",
+    "btn_plan_free": "🎁 Bepul · {trial_days} kun",
+    "btn_plan_basic": "📦 Basic · {price} so'm/oy",
+    "btn_plan_pro": "🚀 Pro · {price} so'm/oy",
     "plan_free_started": (
         "🎁 <b>Bepul muddat boshlandi — {trial_days} kun.</b>\n\n"
         "Basic imkoniyatlari ochiq. Istalgan payt /tarif orqali "

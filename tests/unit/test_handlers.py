@@ -67,13 +67,21 @@ class TestLanguageChoice:
         assert "{" not in text and "}" not in text
 
     async def test_shows_price_and_trial(self, state: FSMContext) -> None:
-        """Narx va sinov muddati sozlamadan olinadi — nomi o'zgarsa yiqiladi."""
+        """Narx va sinov muddati sozlamadan olinadi — nomi o'zgarsa yiqiladi.
+
+        Ular xush kelibsiz ekranida EMAS, tarif ekranida: takrorlanmasin
+        va birinchi ekran qisqa qolsin.
+        """
         cb = make_callback("lang:uz")
         await start.on_lang(cb, state)
 
-        text = sent_text(cb.message.edit_text)
-        assert "149 000" in text
-        assert "3 kun" in text
+        plans_text = sent_text(cb.message.answer)
+        assert "3 kun" in plans_text
+
+        kb = cb.message.answer.await_args.kwargs["reply_markup"]
+        labels = " ".join(b.text for row in kb.inline_keyboard for b in row)
+        assert "149 000" in labels
+        assert "299 000" in labels
 
     async def test_saves_language_to_state(self, state: FSMContext) -> None:
         cb = make_callback("lang:ru")
@@ -120,7 +128,8 @@ class TestOfertaStep:
 
         text = sent_text(cb.message.answer)
         assert "faqat o'qish" in text      # nima qilamiz
-        assert "3 kun bepul" in text       # sinov
+        assert "shifrlangan" in text       # kalit qanday saqlanadi
+        assert "yuridik dalil emas" in text  # hisobotning maqomi
         assert "Uzum Market bilan bog'liq emasmiz" in text  # muhim ogohlantirish
         assert "{" not in text
         assert await state.get_state() == Onboarding.accepting_oferta.state

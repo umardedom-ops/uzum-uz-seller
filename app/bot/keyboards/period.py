@@ -50,38 +50,32 @@ def resolve_preset(key: str, today: date, history_start: date | None) -> tuple[d
 
 
 def period_kb(lang: str) -> InlineKeyboardMarkup:
-    rows = [
-        [
-            InlineKeyboardButton(
-                text=t(PRESETS[0].text_key, lang), callback_data=f"period:{PRESETS[0].key}"
-            ),
-            InlineKeyboardButton(
-                text=t(PRESETS[1].text_key, lang), callback_data=f"period:{PRESETS[1].key}"
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text=t(PRESETS[2].text_key, lang), callback_data=f"period:{PRESETS[2].key}"
-            ),
-            InlineKeyboardButton(
-                text=t(PRESETS[3].text_key, lang), callback_data=f"period:{PRESETS[3].key}"
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text=t(PRESETS[4].text_key, lang), callback_data=f"period:{PRESETS[4].key}"
-            ),
-            InlineKeyboardButton(
-                text=t(PRESETS[5].text_key, lang), callback_data=f"period:{PRESETS[5].key}"
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text=t("period_custom", lang), callback_data="period:custom"
-            )
-        ],
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    """Davr tugmalari.
+
+    «Butun tarix» — butun qatorda va birinchi: u qoldiq tarixini talab
+    qilmaydi, ya'ni bot ulangan kuniyoq natija beradi. Qolgan davrlar
+    tarix to'planishini kutadi, shuning uchun yangi seller uchun aynan
+    shu tugma qiymatli.
+    """
+
+    def btn(preset: Preset) -> InlineKeyboardButton:
+        return InlineKeyboardButton(
+            text=t(preset.text_key, lang), callback_data=f"period:{preset.key}"
+        )
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [btn(PRESETS[5])],                    # Butun tarix
+            [btn(PRESETS[0]), btn(PRESETS[1])],   # Bugun · Kecha
+            [btn(PRESETS[2]), btn(PRESETS[3])],   # 7 kun · Shu oy
+            [btn(PRESETS[4])],                    # O'tgan oy
+            [
+                InlineKeyboardButton(
+                    text=t("period_custom", lang), callback_data="period:custom"
+                )
+            ],
+        ]
+    )
 
 
 def results_kb(lang: str) -> InlineKeyboardMarkup:
