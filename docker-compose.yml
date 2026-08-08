@@ -46,7 +46,20 @@ services:
         condition: service_started
     ports:
       - "${WEB_PORT:-8000}:8000"
+    networks:
+      - default
+      # Traefik shu tarmoq orqali yetib keladi va HTTPS beradi.
+      # Click webhook'i faqat HTTPS bilan ishlaydi (SPEC Phase 6).
+      - edge
 
 volumes:
   pgdata:
   generated:
+
+networks:
+  default:
+  edge:
+    # Serverda allaqachon mavjud reverse-proxy tarmog'i. Biz yaratmaymiz —
+    # `external` bo'lgani uchun mavjudiga ulanamiz.
+    external: true
+    name: ${EDGE_NETWORK:-easypanel}
