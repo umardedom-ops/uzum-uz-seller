@@ -323,6 +323,13 @@ TEXTS: dict[str, str] = {
         "To'lagach <b>«To'ladim»</b> tugmasini bosing. "
         "Tekshirib, obunangizni faollashtiramiz."
     ),
+    "payment_not_ready": (
+        "⏳ <b>Onlayn to'lov hozircha ulanmagan.</b>\n\n"
+        "Tarifni faollashtirish uchun {support} ga yozing — qo'lda "
+        "ulab beramiz.\n\n"
+        "Shu vaqtgacha bepul muddat bilan ishlashda davom eting: "
+        "yo'qotishlarni topish, Excel dalil va pretenziya ochiq."
+    ),
     "payment_details_missing": (
         "⚠️ To'lov rekvizitlari sozlanmagan. Yordam xizmatiga murojaat qiling."
     ),

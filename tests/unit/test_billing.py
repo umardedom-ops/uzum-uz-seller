@@ -7,6 +7,10 @@ Bu pul masalasi. Ikki xato ham qimmat:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
+
+import pytest
+from cryptography.fernet import Fernet
 
 from app.db.models import Plan, Subscription, SubscriptionStatus
 from app.services.billing import (
@@ -161,3 +165,68 @@ class TestPricing:
 
     def test_pro_costs_more(self) -> None:
         assert price_for(Plan.PRO) > price_for(Plan.BASIC)
+
+
+def _empty_payment_settings(**over: object):
+    """Hech qanday to'lov usuli sozlanmagan sozlamalar.
+
+    Qiymatlar ANIQ beriladi: `Settings()` standart holda `.env` ni o'qiydi
+    va ishlab turgan Click kalitini olib qo'yadi — test o'zi tekshirmoqchi
+    bo'lgan holatni yo'qotadi.
+    """
+    from app.core.config import Settings
+
+    base = {
+        "BOT_TOKEN": "x",
+        "FERNET_KEY": Fernet.generate_key().decode(),
+        "CLICK_SERVICE_ID": "",
+        "CLICK_MERCHANT_ID": "",
+        "CLICK_SECRET_KEY": "",
+        "PAYMENT_PROVIDER_TOKEN": "",
+        "PAYMENT_DETAILS": "",
+    }
+    base.update(over)
+    return Settings(**base)
+
+
+class TestPaymentNotConfigured:
+    """To'lov usuli sozlanmaganda seller tupikda qolmasligi kerak.
+
+    2026-08-08: Click o'chirilgan, karta rekvizitlari ham yo'q edi.
+    Bunday holatda bot "to'lang" deb rekvizitsiz ekran ko'rsatib,
+    "To'ladim" tugmasini berardi — seller nima qilishini bilmasdi,
+    admin esa soxta tasdiq bosishga majbur bo'lardi.
+    """
+
+    async def test_returns_false_and_names_support(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.bot.handlers.billing import _send_payment_offer
+
+        cfg = _empty_payment_settings(SUPPORT_USERNAME="@yordam")
+        monkeypatch.setattr(
+            "app.bot.handlers.billing.get_settings", lambda: cfg
+        )
+        target = AsyncMock()
+
+        shown = await _send_payment_offer(target, 1, Plan.PRO, "uz")
+
+        assert shown is False  # chaqiruvchi menyuni ochadi
+        text = target.answer.await_args.args[0]
+        assert "@yordam" in text
+        assert "{" not in text
+
+    async def test_no_payment_record_created(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Soxta to'lov yozuvi yaratilmaydi."""
+        from app.bot.handlers import billing as handlers
+
+        cfg = _empty_payment_settings()
+        monkeypatch.setattr(handlers, "get_settings", lambda: cfg)
+        create = AsyncMock()
+        monkeypatch.setattr(handlers.billing, "create_payment", create)
+
+        await handlers._send_payment_offer(AsyncMock(), 1, Plan.BASIC, "uz")
+
+        create.assert_not_awaited()

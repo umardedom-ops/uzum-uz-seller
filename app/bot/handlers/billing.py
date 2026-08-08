@@ -78,8 +78,7 @@ async def offer_payment_after_connect(
         return False
 
     lang = data.get("lang", DEFAULT_LANG)
-    await _send_payment_offer(cb_message, telegram_id, Plan(choice), lang)
-    return True
+    return await _send_payment_offer(cb_message, telegram_id, Plan(choice), lang)
 
 
 @router.message(Onboarding.choosing_plan)
@@ -129,14 +128,31 @@ async def on_buy(cb: CallbackQuery, state: FSMContext) -> None:
 
 async def _send_payment_offer(
     target: Message, telegram_id: int, plan: Plan, lang: str
-) -> None:
+) -> bool:
     """To'lov ekrani: Click → Telegram Payments → qo'lda (mavjudiga qarab).
+
+    `False` qaytaradi — hech qanday to'lov usuli sozlanmagan. Chaqiruvchi
+    shunda oqimni davom ettiradi (masalan menyuni ochadi), aks holda
+    seller tupikda qolardi.
 
     Ikki joydan chaqiriladi: tariflar ekranidan va onboarding oxirida
     (do'kon ulangach). Shu sabab `CallbackQuery` emas, xabar oladi.
     """
     settings = get_settings()
     amount = billing.price_for(plan)
+
+    # Hech biri sozlanmagan bo'lsa to'lov yozuvi ham yaratilmaydi: "to'lang"
+    # deb rekvizitsiz ekran ko'rsatish va "To'ladim" tugmasini berish —
+    # sellerni chalg'itadi va adminni soxta tasdiqqa majbur qiladi.
+    if not (
+        settings.click_enabled
+        or settings.payment_provider_token
+        or settings.payment_details
+    ):
+        await target.answer(
+            t("payment_not_ready", lang, support=settings.support_username)
+        )
+        return False
 
     if settings.click_enabled:
         # Click Shop API — to'lov Click sahifasida, tasdiq webhook orqali
@@ -145,7 +161,7 @@ async def _send_payment_offer(
         )
         if payment_id is None:
             await target.answer(t("error", lang))
-            return
+            return False
 
         link = click.payment_link(payment_id, amount)
         await target.answer(
@@ -158,7 +174,7 @@ async def _send_payment_offer(
             reply_markup=click_pay_kb(link, lang),
             disable_web_page_preview=True,
         )
-        return
+        return True
 
     if settings.payment_provider_token:
         # Telegram Payments — karta ma'lumoti bizga tegmaydi
@@ -177,7 +193,7 @@ async def _send_payment_offer(
                 )
             ],
         )
-        return
+        return True
 
     # Provayder tokeni yo'q — qo'lda tasdiqlash
     payment_id = await billing.create_payment(
@@ -185,9 +201,9 @@ async def _send_payment_offer(
     )
     if payment_id is None:
         await target.answer(t("error", lang))
-        return
+        return False
 
-    details = settings.payment_details or t("payment_details_missing", lang)
+    details = settings.payment_details
     await target.answer(
         t(
             "manual_payment",
@@ -198,6 +214,7 @@ async def _send_payment_offer(
         ),
         reply_markup=manual_paid_kb(payment_id, lang),
     )
+    return True
 
 
 @router.callback_query(F.data.startswith("billing:paid:"))

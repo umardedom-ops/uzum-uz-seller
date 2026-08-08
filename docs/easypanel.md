@@ -1,5 +1,21 @@
 # EasyPanel'ga chiqarish — qadam-baqadam
 
+> ⚠️ **BU YO'L ISHLATILMADI.** Loyiha 2026-08-08 da boshqacha
+> joylashtirildi: EasyPanel loyihasi sifatida emas, o'sha serverdagi
+> **oddiy `docker compose`** bilan. Sabab: EasyPanel bepul tarifida
+> 3 loyiha chegarasi bor va serverda allaqachon 2 tasi band edi
+> (ERPNext, n8n) — chegara tugab qolardi.
+>
+> **Haqiqiy holat va buyruqlar: `docs/holat.md` → «Ishlab turgan
+> server».** Bu fayl EasyPanel UI orqali qilmoqchi bo'lsangiz zaxira
+> yo'riqnoma sifatida qoldirilgan.
+>
+> Domen esa baribir EasyPanel'niki: uning Traefik'i `*.8xspuf.easypanel.host`
+> subdomenlarini va Let's Encrypt sertifikatini beradi. Bizning
+> marshrut alohida faylda —
+> `/etc/easypanel/traefik/config/uzumbot.yaml` — shuning uchun
+> EasyPanel o'z `main.yaml` ini qayta yaratganda ham saqlanib qoladi.
+
 Domen sotib olish shart emas: EasyPanel bepul subdomen va HTTPS beradi.
 
 ---

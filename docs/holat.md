@@ -1,4 +1,4 @@
-# Loyiha holati — 2026-08-07
+# Loyiha holati — 2026-08-09
 
 > Yangi suhbat boshlanganda **shu faylni birinchi bo'lib o'qing**.
 > Texnik topshiriq: `SPEC.md`. API ma'lumotnomasi: `docs/api-inventory.md`.
@@ -6,7 +6,7 @@
 ## Qisqacha
 
 Uzum Market sellerlari uchun Telegram bot. Kod to'liq yozilgan,
-**286 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
+**298 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
 bilan ishlaydi.
 
 **Audit raqamlari 2026-08-07 da tekshirildi va tuzatildi** —
@@ -18,16 +18,27 @@ bilan ishlaydi.
 | Qism | Holat |
 |---|---|
 | Uzum Seller API klienti (faqat GET) | ✅ jonli sinalgan |
-| Onboarding: til → oferta → telefon → API kalit | ✅ |
+| Onboarding: til → **tarif** → oferta → telefon → API kalit | ✅ |
 | Kalit berilgach **darhol** sync + audit | ✅ |
 | 6 xil audit (5.1–5.5 + saqlash xarajati) | ✅ sverka qilingan |
-| Manba bo'sh bo'lsa ochiq aytiladi | ✅ yangi |
-| Excel / PDF / pretenziya | ✅ |
+| Manba bo'sh bo'lsa ochiq aytiladi | ✅ |
+| Excel / PDF / pretenziya + qo'shimcha kelishuv | ✅ |
 | FBS yorliqlar, qoldiq, yunit-iqtisodiyot | ✅ |
-| Obuna: 3 kun sinov, Basic 149k / Pro 299k | ✅ |
-| Click to'lovi (Shop API webhook) | ✅ kod tayyor, sozlanmagan |
+| Obuna: 3 kun sinov (Basic), Basic 149k / Pro 299k | ✅ |
 | Admin: birinchi `/start` bosgan avtomatik admin | ✅ |
-| Docker Compose + PostgreSQL | ✅ qurilmagan (Docker yo'q) |
+| Serverda 24/7 (Docker + PostgreSQL) | ✅ ishlab turibdi |
+| HTTPS domen + webhook | ✅ `uzumbot.8xspuf.easypanel.host` |
+| **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
+
+> ⛔ **Click hozircha O'CHIRILGAN** (`CLICK_SECRET_KEY` bo'sh).
+> Sabab: `.env` da chatga tushgan eski kalit turgan, webhook manzillari
+> esa Click kabinetida sozlanmagan. Bunday holatda seller pul to'lay
+> olardi-yu, tasdiq kelmagani uchun obuna faollashmasdi — pul ketib,
+> xizmat berilmasdi. Sozlangunicha o'chiq turadi.
+>
+> Hech qanday to'lov usuli yo'q bo'lsa, bot pullik tarif tanlaganга
+> «onlayn to'lov ulanmagan, support'ga yozing» deb aytadi va bepul
+> muddat bilan davom etadi. Tupik yo'q.
 
 ## Sverka natijasi (2026-08-07)
 
@@ -78,6 +89,10 @@ Batafsil: `docs/sverka/xulosa.md`.
 
 ## Ma'lumotlar bazasi holati
 
+Ikki alohida baza bor — ularni adashtirmang:
+
+**Lokal** (`uzumbot.db`, SQLite) — sverka shu yerda qilingan:
+
 ```
 Foydalanuvchi: 2 (1 admin, 1 seller)
 Do'kon: AZIKO (7973), AZIKO PLAST (25273)
@@ -85,6 +100,10 @@ Mahsulot: 232 · Tannarxi bor: 228
 Ombor harakati: 378 · Buyurtma: 539 · Qaytarish: 2
 Qoldiq surati: 464 · Farqlar: 0
 ```
+
+**Server** (PostgreSQL) — **bo'sh**, noldan boshlangan. Do'konlar
+qaytadan ulanadi. `FERNET_KEY` lokal bilan bir xil, ya'ni xohlasangiz
+lokal bazani serverga ko'chirish mumkin (kalitlar ochiladi).
 
 > Zaxira nusxa: `uzumbot.db.bak-20260807-220407` (sverkadan oldingi holat).
 
@@ -102,7 +121,21 @@ Server:   46.62.199.124 (Ubuntu 24.04)
 Papka:    /opt/uzumbot
 Loyiha:   docker compose -p uzumbot   (db · bot · web)
 Baza:     PostgreSQL 16, `uzumbot_pgdata` volume ichida
+Domen:    https://uzumbot.8xspuf.easypanel.host
 ```
+
+Ochiq manzillar:
+
+| Manzil | Nima |
+|---|---|
+| `/health` | holat tekshiruvi (Click yoqilganini ham ko'rsatadi) |
+| `/oferta` | ommaviy oferta sahifasi |
+| `/click/prepare`, `/click/complete` | Click webhook'lari |
+
+> HTTPS serverdagi mavjud Traefik orqali (EasyPanel'niki). Marshrut
+> **alohida faylda**: `/etc/easypanel/traefik/config/uzumbot.yaml` —
+> EasyPanel o'z `main.yaml` ini qayta yozganda ham saqlanadi. `web`
+> konteyneri shu sabab `easypanel` overlay tarmog'iga ham ulangan.
 
 > ⚠️ Serverda ERPNext va n8n ham ishlaydi. Xotira tang (3.8 GB), shuning
 > uchun 2 GB swap qo'shilgan. Yangi og'ir xizmat qo'shishdan oldin
@@ -142,9 +175,30 @@ cd "E:\IT loihalar\UZUMUZBOT"
 
 ## Keyingi qadamlar (muhimlik tartibida)
 
-1. GitHub'ga push + EasyPanel'ga deploy (`docs/easypanel.md`)
-3. Click: yangi `CLICK_SECRET_KEY`, domen, webhook URL sozlash
-4. Ofertaga rekvizit kerak bo'lsa qo'shish (hozir rekvizitsiz)
+1. **Click to'lovini yoqish** — hozir o'chiq, daromad yo'q. Ikki yo'l:
+   * Bot uchun **alohida servis** yarating (tavsiya). Parfyum
+     servislariga tegilmaydi.
+   * Yoki mavjud `107646` (`parfumlux.uz`) servisidan foydalanish —
+     ❗ ammo webhook manzili har servisga BITTA. Uni almashtirsangiz
+     parfyum saytida to'lov uziladi. Almashtirishdan oldin eski
+     manzillarni ko'chirib oling.
+
+   Servis tayyor bo'lgach `.env` ga yozing:
+   ```bash
+   ssh root@46.62.199.124 'cd /opt/uzumbot && nano .env && docker compose -p uzumbot up -d'
+   ```
+   `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY`.
+   Webhook manzillari: `<domen>/click/prepare` va `/click/complete`.
+
+2. **Haqiqiy sotuvi bor do'konni ulash** — AZIKO sinov do'koni,
+   sotuvi 2024-11 da to'xtagan. Formulani tirik ma'lumotda tekshirish
+   kerak.
+
+3. Ofertaga rekvizit qo'shish (hozir rekvizitsiz)
+
+4. Zaxira nusxani serverdan tashqariga chiqarish — hozir zaxira o'sha
+   serverning o'zida yotadi, server yo'qolsa u ham yo'qoladi.
+
 5. ~200 do'kondan keyin: sync'ni parallel qilish, audit yig'indilarini
    SQL tomoniga o'tkazish
 
