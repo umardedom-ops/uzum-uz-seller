@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -179,14 +179,39 @@ async def _load_products(session: AsyncSession, shop_id: int) -> dict[str, Produ
 
 
 def _unit_cost(product: Product | None) -> Decimal:
-    """Zarar hisobi uchun narx.
+    """Bir dona uchun **kompensatsiya summasi**.
 
-    Tannarx bo'lsa — o'sha. Bo'lmasa 0: noto'g'ri summa ko'rsatgandan
-    ko'ra nol ko'rsatib, sellerdan tannarx so'raganimiz ma'qul.
+        kompensatsiya = sotuv narxi − marketpleys komissiyasi
+
+    ❗ Tannarx EMAS. Bu Uzumning o'z qoidasi — qabul qilingan haqiqiy
+    pretenziyada aynan shunday yozilgan (2026-08-08 da tekshirildi):
+
+        «Размер возмещения = Действительная стоимость товара −
+         Комиссия маркетплейса» (Instruksiya 6.8, Oferta 6.10/6.12/6.13)
+
+    Ilgari tannarx ishlatilardi va seller haqlisidan ancha kam da'vo
+    qilardi: SKU 693852 uchun 200 000 so'm o'rniga 420 000 − 20% =
+    336 000 so'm.
+
+    Sotuv narxi yoki komissiya yo'q bo'lsa tannarxga tushamiz — nol
+    ko'rsatgandan ko'ra kam bo'lsa ham asosli raqam ma'qul.
     """
-    if product is None or product.cost_price is None:
+    if product is None:
         return Decimal("0")
-    return product.cost_price
+
+    price = product.sale_price
+    if price is None or price <= 0:
+        return product.cost_price or Decimal("0")
+
+    pct = product.commission_pct
+    if pct is None or pct < 0:
+        # Komissiya noma'lum — narxdan ushlab qolmaymiz, lekin bu summa
+        # Uzum hisobidan ko'proq chiqishi mumkin. Tannarx bor bo'lsa
+        # ehtiyot bo'lib o'shani olamiz.
+        return product.cost_price or price
+
+    compensation = price * (Decimal("100") - pct) / Decimal("100")
+    return compensation.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 # ---------------------------------------------------------------------- #

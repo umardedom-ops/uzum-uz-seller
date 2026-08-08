@@ -101,7 +101,7 @@ class TestClaim:
         assert path.exists()
 
         text = "\n".join(p.text for p in Document(path).paragraphs)
-        assert "PRETENZIYA" in text
+        assert "Pretenziya" in text
         assert "Elore Parfume" in text
         assert "125841" in text
         assert "YaTT Aliyev A.A." in text
@@ -117,12 +117,16 @@ class TestClaim:
         assert "uch yuz qirq ming" in text  # so'z bilan
 
     def test_table_has_all_rows(self, ctx: ClaimContext, tmp_path: Path) -> None:
+        """Ustunlar Uzum qabul qilgan pretenziyadagi tartibda.
+
+        nom | shtrix kod | sabab | qoplash summasi | dona | jami
+        """
         path = build_claim(ctx, tmp_path / "p.docx")
         table = Document(path).tables[0]
 
         assert len(table.rows) == len(ctx.rows) + 1  # sarlavha + qatorlar
-        assert table.rows[0].cells[2].text == "Shtrix kod"
-        assert table.rows[1].cells[1].text == "SKU-1"
+        assert table.rows[0].cells[1].text == "Shtrix kod"
+        assert table.rows[1].cells[1].text == "2620101-03303001001017001"
 
     def test_missing_barcode_shown_as_dash(self, tmp_path: Path) -> None:
         ctx = ClaimContext(
@@ -136,7 +140,45 @@ class TestClaim:
         )
         path = build_claim(ctx, tmp_path / "p.docx")
         table = Document(path).tables[0]
-        assert table.rows[1].cells[2].text == "—"
+        assert table.rows[1].cells[1].text == "—"
+
+    def test_requisites_blank_when_unknown(self, tmp_path: Path) -> None:
+        """Rekvizit bo'lmasa chiziqcha — usiz Uzum to'lov qila olmaydi."""
+        ctx = ClaimContext(
+            seller_name="Test",
+            seller_requisites="",
+            shop_title="Shop",
+            shop_id="1",
+            period_from=date(2026, 7, 1),
+            period_to=date(2026, 7, 31),
+            rows=[make_row()],
+        )
+        text = "\n".join(
+            p.text for p in Document(build_claim(ctx, tmp_path / "p.docx")).paragraphs
+        )
+        assert "PINFL:" in text
+        assert "HISOB RAQAM:" in text
+        assert "MFO:" in text
+
+    def test_russian_uses_accepted_wording(self, tmp_path: Path) -> None:
+        """Rus tilidagi shakl haqiqiy hujjatdagi iboralarni saqlaydi."""
+        ctx = ClaimContext(
+            seller_name="Test",
+            seller_requisites="",
+            shop_title="Shop",
+            shop_id="1",
+            period_from=date(2026, 7, 1),
+            period_to=date(2026, 7, 31),
+            rows=[make_row()],
+            lang="ru",
+        )
+        doc = Document(build_claim(ctx, tmp_path / "p.docx"))
+        text = "\n".join(p.text for p in doc.paragraphs)
+
+        assert "Претензия" in text
+        assert "Размер возмещения" in text
+        assert "Комиссия маркетплейса" in text
+        assert doc.tables[0].rows[0].cells[2].text.startswith("Причина")
 
     def test_totals_computed_from_rows(self, ctx: ClaimContext) -> None:
         assert ctx.total_amount == Decimal("340000")

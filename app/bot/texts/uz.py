@@ -168,6 +168,11 @@ TEXTS: dict[str, str] = {
         "⚠️ Yuborishdan oldin rekvizitlaringizni to'ldiring va matnni "
         "tekshiring."
     ),
+    "agreement_caption": (
+        "📑 Qo'shimcha kelishuv (2 nusxada).\n\n"
+        "⚠️ Pretenziyaning o'zi yetarli emas — Uzum to'lovni shu kelishuv "
+        "imzolangandan keyin qiladi. Ikkala hujjatni birga yuboring."
+    ),
     "claim_seller_placeholder": "____________________ (rekvizitlaringizni yozing)",
     "no_shop": (
         "🔗 Avval do'koningizni ulang.\n\n"

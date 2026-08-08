@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 
 from app.db.models import DiscrepancyKind, DiscrepancyStatus
 from app.services.audit import (
@@ -32,7 +33,7 @@ from app.services.audit import (
     total_claimable,
     total_watching,
 )
-from app.services.audit_runner import DataHealth
+from app.services.audit_runner import DataHealth, _unit_cost
 
 T1 = date(2026, 7, 1)
 T2 = date(2026, 7, 31)
@@ -632,3 +633,51 @@ class TestDataHealth:
             "omborga qabul (yuk xatlari)",
             "qoldiq surati",
         ]
+
+
+class TestCompensationBasis:
+    """Zarar summasi Uzumning qoplash qoidasi bo'yicha hisoblanadi.
+
+    «Размер возмещения = Действительная стоимость товара −
+     Комиссия маркетплейса» — qabul qilingan haqiqiy pretenziyadan
+    (2026-08-08). Ilgari tannarx ishlatilardi va seller haqlisidan
+    ancha kam da'vo qilardi.
+    """
+
+    @staticmethod
+    def _product(**kwargs: object) -> SimpleNamespace:
+        base = {
+            "sale_price": Decimal("420000"),
+            "commission_pct": Decimal("20"),
+            "cost_price": Decimal("200000"),
+        }
+        base.update(kwargs)
+        return SimpleNamespace(**base)
+
+    def test_subtracts_commission_from_sale_price(self) -> None:
+        # 420 000 − 20% = 336 000 (tannarx 200 000 emas)
+        assert _unit_cost(self._product()) == Decimal("336000.00")
+
+    def test_zero_commission_keeps_full_price(self) -> None:
+        assert _unit_cost(
+            self._product(commission_pct=Decimal("0"))
+        ) == Decimal("420000.00")
+
+    def test_falls_back_to_cost_when_no_sale_price(self) -> None:
+        """Sotuv narxi yo'q — nol ko'rsatgandan ko'ra tannarx ma'qul."""
+        assert _unit_cost(self._product(sale_price=None)) == Decimal("200000")
+        assert _unit_cost(self._product(sale_price=Decimal("0"))) == Decimal("200000")
+
+    def test_unknown_commission_prefers_cost_price(self) -> None:
+        """Komissiya noma'lum — ortiqcha da'vo qilmaymiz."""
+        assert _unit_cost(
+            self._product(commission_pct=None)
+        ) == Decimal("200000")
+
+    def test_unknown_commission_without_cost_uses_price(self) -> None:
+        assert _unit_cost(
+            self._product(commission_pct=None, cost_price=None)
+        ) == Decimal("420000")
+
+    def test_no_product_is_zero(self) -> None:
+        assert _unit_cost(None) == Decimal("0")

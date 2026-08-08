@@ -24,8 +24,10 @@ HEADERS = (
     ("Kutilgan qoldiq", 16),
     ("Haqiqiy qoldiq", 16),
     ("Farq (dona)", 12),
-    ("Tannarx (so'm)", 16),
-    ("Zarar (so'm)", 16),
+    # ⚠️ Bu ustun 2026-08-08 gacha "Tannarx" edi. Endi Uzumning qoplash
+    # qoidasi bo'yicha hisoblanadi: sotuv narxi − komissiya.
+    ("Qoplash summasi (so'm)", 20),
+    ("Jami (so'm)", 16),
     ("Turi", 22),
     ("Aniqlangan sana", 16),
 )
@@ -117,5 +119,59 @@ def build_report(rows: list[ReportRow], output_path: str | Path) -> Path:
         )
         note.font = Font(color="9C5700", italic=True)
 
+    _add_submission_sheet(wb, rows)
+
     wb.save(path)
     return path
+
+
+# Uzumga topshiriladigan varaq — ustunlar qabul qilingan hisobotdagidek.
+# Birinchi varaq bizning dalilimiz (kutilgan/haqiqiy qoldiq, davr), bu esa
+# Uzum tomoni ko'rishga o'rgangan sodda shakl.
+SUBMISSION_HEADERS = (
+    ("Название товара", 46),
+    ("Штрих-код", 26),
+    ("Размер возмещения", 20),
+    ("Количество", 14),
+    ("Итого", 18),
+)
+
+
+def _add_submission_sheet(wb: Workbook, rows: list[ReportRow]) -> None:
+    ws = wb.create_sheet("Uzum uchun")
+
+    for col, (name, width) in enumerate(SUBMISSION_HEADERS, start=1):
+        cell = ws.cell(row=1, column=col, value=name)
+        cell.fill = _HEADER_FILL
+        cell.font = _HEADER_FONT
+        cell.alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
+        )
+        cell.border = _BORDER
+        ws.column_dimensions[get_column_letter(col)].width = width
+    ws.freeze_panes = "A2"
+
+    for idx, row in enumerate(rows, start=2):
+        values = (
+            row.title,
+            row.barcode or "",
+            float(row.compensation_per_unit),
+            row.diff_qty,
+            float(row.loss_amount),
+        )
+        for col, value in enumerate(values, start=1):
+            cell = ws.cell(row=idx, column=col, value=value)
+            cell.border = _BORDER
+            if col in (3, 5):
+                cell.number_format = _MONEY_FMT
+            elif col == 4:
+                cell.alignment = Alignment(horizontal="center")
+
+    total_row = len(rows) + 2
+    ws.cell(row=total_row, column=1, value="ИТОГО").font = _TOTAL_FONT
+    total = ws.cell(
+        row=total_row, column=5, value=float(sum(r.loss_amount for r in rows))
+    )
+    total.font = _TOTAL_FONT
+    total.border = _BORDER
+    total.number_format = _MONEY_FMT

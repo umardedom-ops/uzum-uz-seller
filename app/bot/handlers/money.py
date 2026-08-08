@@ -20,6 +20,7 @@ from app.bot.keyboards.period import period_kb, resolve_preset, results_kb
 from app.bot.texts import DEFAULT_LANG, LANGS, t
 from app.core.logging import get_logger
 from app.db.models import Discrepancy
+from app.docs.agreement import build_agreement
 from app.docs.claim import build_claim
 from app.docs.excel import build_report
 from app.docs.models import KIND_LABELS, ClaimContext
@@ -322,11 +323,20 @@ async def on_claim(cb: CallbackQuery, state: FSMContext) -> None:
         period_to=period_to or max(r.period_to for r in rows),
         rows=rows,
         created_on=today,
+        lang=lang,
     )
-    path = build_claim(
-        ctx, GENERATED_DIR / f"pretenziya-{shop.uzum_shop_id}-{ctx.period_to}.docx"
+    stem = f"{shop.uzum_shop_id}-{ctx.period_to}"
+    claim_path = build_claim(ctx, GENERATED_DIR / f"pretenziya-{stem}.docx")
+    # Pretenziya yolg'iz yetarli emas — Uzum to'lovni qo'shimcha kelishuv
+    # imzolangandan keyin qiladi. Ikkalasini birga beramiz.
+    agreement_path = build_agreement(ctx, GENERATED_DIR / f"kelishuv-{stem}.docx")
+
+    await cb.message.answer_document(
+        FSInputFile(claim_path), caption=t("claim_caption", lang)
     )
-    await cb.message.answer_document(FSInputFile(path), caption=t("claim_caption", lang))
+    await cb.message.answer_document(
+        FSInputFile(agreement_path), caption=t("agreement_caption", lang)
+    )
 
 
 # ---------------------------------------------------------------------- #
