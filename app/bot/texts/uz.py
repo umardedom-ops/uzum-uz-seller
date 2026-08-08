@@ -165,13 +165,18 @@ TEXTS: dict[str, str] = {
     ),
     "claim_caption": (
         "📝 Pretenziya loyihasi.\n\n"
-        "⚠️ Yuborishdan oldin rekvizitlaringizni to'ldiring va matnni "
-        "tekshiring."
+        "⚠️ Yuborishdan oldin chiziqchali joylarni to'ldiring:\n"
+        "• F.I.Sh. va tadbirkorlik shakli\n"
+        "• PINFL\n"
+        "• Hisob raqam va MFO\n\n"
+        "Bularsiz Uzum pul o'tkaza olmaydi."
     ),
     "agreement_caption": (
         "📑 Qo'shimcha kelishuv (2 nusxada).\n\n"
         "⚠️ Pretenziyaning o'zi yetarli emas — Uzum to'lovni shu kelishuv "
-        "imzolangandan keyin qiladi. Ikkala hujjatni birga yuboring."
+        "imzolangandan keyin qiladi. Ikkala hujjatni birga yuboring.\n\n"
+        "Shartnoma raqami va sanasini kabinetdan ko'chiring "
+        "(Oferta bo'limida)."
     ),
     "claim_seller_placeholder": "____________________ (rekvizitlaringizni yozing)",
     "no_shop": (
