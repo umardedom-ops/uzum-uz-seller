@@ -1,7 +1,10 @@
 """Onboarding oqimi (SPEC 7).
 
-/start → til → xush kelibsiz → oferta → telefon → yo'riqnoma → do'kon ID
-→ asosiy menyu
+/start → til → xush kelibsiz → TARIF → oferta → telefon → yo'riqnoma
+→ API kalit → asosiy menyu
+
+Tarif til tanlangandan keyin so'raladi. Pullik tanlansa to'lov oxirida —
+do'kon ulangach — taklif qilinadi.
 """
 from __future__ import annotations
 
@@ -21,6 +24,7 @@ from aiogram.types import (
 )
 
 from app.bot.keyboards.billing import onboarding_plans_kb
+from app.bot.keyboards.menu import main_menu_kb
 from app.bot.keyboards.onboarding import (
     how_to_kb,
     lang_kb,
@@ -32,6 +36,7 @@ from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.services import billing
 from app.services import onboarding as svc
 
 log = get_logger(__name__)
@@ -121,22 +126,46 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.answer()
 
 
-# --- 3. Boshlash → oferta ---
+# --- 3. Boshlash → tarif tanlash ---
 @router.callback_query(F.data == "start:go")
 async def on_start(cb: CallbackQuery, state: FSMContext) -> None:
-    """Oferta ekrani.
+    """Tarif tanlash — til tanlangandan keyingi birinchi qadam.
+
+    Tanlash **majburiy**: tanlanmaguncha oqim davom etmaydi. Pullik
+    tarif tanlansa to'lov shu yerda emas, do'kon ulangandan keyin
+    so'raladi — oferta qabul qilinmasdan pul so'rash noto'g'ri va
+    seller hali mahsulotni ishlayotganini ko'rmagan bo'ladi.
+    """
+    lang = await _lang(state)
+    s = get_settings()
+    await state.set_state(Onboarding.choosing_plan)
+    await cb.message.edit_text(
+        t(
+            "choose_plan",
+            lang,
+            trial_days=s.trial_days,
+            price_basic=_money(s.price_basic),
+            price_pro=_money(s.price_pro),
+        ),
+        reply_markup=onboarding_plans_kb(lang),
+    )
+    await cb.answer()
+
+
+async def show_oferta(cb: CallbackQuery, state: FSMContext) -> None:
+    """Oferta ekrani (tarif tanlangandan keyin).
 
     Asosiy shartlar bevosita Telegramda ko'rsatiladi — havolaga bog'liq
     emas. To'liq matnni alohida tugma bilan fayl ko'rinishida olish
     mumkin, ya'ni server ishlamasa ham seller hujjatni o'qiy oladi.
     """
     lang = await _lang(state)
-    await cb.message.edit_text(
+    await state.set_state(Onboarding.accepting_oferta)
+    await cb.message.answer(
         t("oferta", lang),
         reply_markup=oferta_kb(lang),
         disable_web_page_preview=True,
     )
-    await cb.answer()
 
 
 @router.callback_query(F.data == "oferta:full")
@@ -238,19 +267,19 @@ async def on_api_key(message: Message, state: FSMContext) -> None:
         t("shop_connected", lang, shops=shops, trial_days=settings.trial_days)
     )
 
-    # Tarif tanlanmaguncha menyu ochilmaydi (SPEC 7). Seller do'koni
-    # ulanganini ko'rgach tanlaydi — shu payt qiymat allaqachon ko'rinadi.
-    await state.set_state(Onboarding.choosing_plan)
-    await message.answer(
-        t(
-            "choose_plan",
-            lang,
-            trial_days=settings.trial_days,
-            price_basic=f"{settings.price_basic:,}".replace(",", " "),
-            price_pro=f"{settings.price_pro:,}".replace(",", " "),
-        ),
-        reply_markup=onboarding_plans_kb(lang),
-    )
+    await state.set_state(Onboarding.done)
+
+    # Tarif boshida tanlangan. Pullik bo'lsa to'lov endi so'raladi —
+    # seller do'koni ulanganini ko'rgandan keyin, oldin emas.
+    from app.bot.handlers.billing import offer_payment_after_connect
+
+    paid = await offer_payment_after_connect(message, state, message.from_user.id)
+    if not paid:
+        is_admin = await billing.is_admin(message.from_user.id)
+        await message.answer(
+            t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
+            reply_markup=main_menu_kb(lang, is_admin=is_admin),
+        )
 
     # Birinchi sinxronizatsiyani darhol boshlaymiz — soatlik jadvalni
     # kutsak, seller bir soatgacha bo'sh ekranni ko'radi.

@@ -86,6 +86,26 @@ class TestLanguageChoice:
         assert await state.get_state() == Onboarding.accepting_oferta.state
 
 
+class TestPlanStep:
+    async def test_start_offers_three_plans(self, state: FSMContext) -> None:
+        """Til tanlangandan keyingi qadam — tarif tanlash, 3 variant."""
+        await state.update_data(lang="uz")
+        cb = make_callback("start:go")
+        await start.on_start(cb, state)
+
+        text = sent_text(cb.message.edit_text)
+        assert "Tarifni tanlang" in text
+        assert "{" not in text
+        assert await state.get_state() == Onboarding.choosing_plan.state
+
+        kb = cb.message.edit_text.await_args.kwargs["reply_markup"]
+        labels = [b.text for row in kb.inline_keyboard for b in row]
+        assert len(labels) == 3
+        assert any("Bepul" in x for x in labels)
+        assert any("Basic" in x for x in labels)
+        assert any("Pro" in x for x in labels)
+
+
 class TestOfertaStep:
     async def test_shows_key_terms_inline(self, state: FSMContext) -> None:
         """Asosiy shartlar Telegram ichida ko'rinadi — havolaga bog'liq emas.
@@ -95,13 +115,14 @@ class TestOfertaStep:
         """
         await state.update_data(lang="uz")
         cb = make_callback("start:go")
-        await start.on_start(cb, state)
+        await start.show_oferta(cb, state)
 
-        text = sent_text(cb.message.edit_text)
+        text = sent_text(cb.message.answer)
         assert "faqat o'qish" in text      # nima qilamiz
         assert "3 kun bepul" in text       # sinov
         assert "Uzum Market bilan bog'liq emasmiz" in text  # muhim ogohlantirish
         assert "{" not in text
+        assert await state.get_state() == Onboarding.accepting_oferta.state
 
     async def test_full_text_button_sends_file(self, state: FSMContext) -> None:
         """To'liq matn fayl sifatida yuboriladi — serversiz ham ishlaydi."""
@@ -221,13 +242,17 @@ class TestApiKeyStep:
 
         text = sent_text(status.edit_text)
         assert "Elore Parfume" in text
-        # Do'kon ulangach darhol menyu emas — avval tarif tanlanadi
-        assert await state.get_state() == Onboarding.choosing_plan.state
+        assert await state.get_state() == Onboarding.done.state
 
-    async def test_offers_three_plans_after_connect(
+    async def test_paid_plan_asks_payment_after_connect(
         self, state: FSMContext, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Tanlash majburiy: bepul + 2 ta pullik tarif ko'rsatiladi."""
+        """Boshida pullik tarif tanlangan bo'lsa — to'lov endi so'raladi.
+
+        To'lov onboarding boshida emas, aynan shu yerda: seller do'koni
+        ulanganini ko'rgandan keyin.
+        """
+        from app.bot.handlers import billing as billing_handlers
         from app.services.onboarding import ConnectResult
 
         monkeypatch.setattr(
@@ -235,17 +260,16 @@ class TestApiKeyStep:
             "connect_with_api_key",
             AsyncMock(return_value=ConnectResult(ok=True, shops=[{"id": "1"}])),
         )
-        await state.update_data(lang="uz")
+        offer = AsyncMock(return_value=True)
+        monkeypatch.setattr(billing_handlers, "offer_payment_after_connect", offer)
 
+        await state.update_data(lang="uz", chosen_plan="pro")
         msg = self._message("A" * 40)
         msg.answer = AsyncMock(return_value=AsyncMock())
 
         await start.on_api_key(msg, state)
 
-        # Oxirgi xabar — tarif tanlash klaviaturasi bilan
-        kb = msg.answer.await_args.kwargs["reply_markup"]
-        labels = [b.text for row in kb.inline_keyboard for b in row]
-        assert len(labels) == 3
-        assert any("Bepul" in x for x in labels)
-        assert any("Basic" in x for x in labels)
-        assert any("Pro" in x for x in labels)
+        offer.assert_awaited_once()
+        # To'lov ekrani ko'rsatilgani uchun menyu hali chiqmaydi
+        texts = [c.args[0] for c in msg.answer.await_args_list if c.args]
+        assert not any("Asosiy menyu" in x for x in texts)

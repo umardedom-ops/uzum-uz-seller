@@ -20,7 +20,6 @@ from aiogram.types import (
 )
 
 from app.bot.keyboards.billing import click_pay_kb, manual_paid_kb, plans_kb
-from app.bot.keyboards.menu import main_menu_kb
 from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
@@ -40,31 +39,47 @@ _MINOR_UNITS = 100
 async def on_onboarding_plan(cb: CallbackQuery, state: FSMContext) -> None:
     """Onboardingdagi tarif tanlovi — 3 variantdan biri.
 
-    Bepul tanlansa menyuga o'tamiz (sinov do'kon ulanganda allaqachon
-    boshlangan). Pullik tanlansa odatdagi to'lov oqimiga o'tamiz —
-    to'lov tugagach menyu ochiladi.
+    Tanlov eslab qolinadi va oqim ofertaga o'tadi. Pullik tarif tanlansa
+    to'lov shu yerda SO'RALMAYDI: oferta hali qabul qilinmagan va seller
+    do'konini ham ulamagan. To'lov do'kon ulangandan keyin taklif
+    qilinadi (`start.on_api_key`).
     """
+    from app.bot.handlers.start import show_oferta
+
     lang = await _lang(state)
     choice = cb.data.rsplit(":", 1)[1]
 
-    if choice != "free":
-        # `on_buy` shu ko'rinishdagi callback'ni kutadi
-        cb = cb.model_copy(update={"data": f"billing:buy:{choice}"})
-        await on_buy(cb, state)
-        return
-
     await cb.answer()
-    await state.set_state(Onboarding.done)
     await cb.message.edit_reply_markup(reply_markup=None)
-    await cb.message.answer(
-        t("plan_free_started", lang, trial_days=get_settings().trial_days)
-    )
+    await state.update_data(chosen_plan=choice)
 
-    is_admin = await billing.is_admin(cb.from_user.id)
-    await cb.message.answer(
-        t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
-        reply_markup=main_menu_kb(lang, is_admin=is_admin),
-    )
+    if choice == "free":
+        await cb.message.answer(
+            t("plan_free_started", lang, trial_days=get_settings().trial_days)
+        )
+    else:
+        await cb.message.answer(
+            t("plan_paid_later", lang, plan=_plan_name(Plan(choice), lang))
+        )
+
+    await show_oferta(cb, state)
+
+
+async def offer_payment_after_connect(
+    cb_message: Message, state: FSMContext, telegram_id: int
+) -> bool:
+    """Do'kon ulangach: pullik tarif tanlangan bo'lsa to'lovni taklif qiladi.
+
+    `True` qaytarsa — to'lov ekrani ko'rsatildi, menyu keyinroq ochiladi.
+    """
+    data = await state.get_data()
+    choice = data.get("chosen_plan")
+    if choice in (None, "free"):
+        return False
+
+    lang = data.get("lang", DEFAULT_LANG)
+    await _send_payment_offer(cb_message, telegram_id, Plan(choice), lang)
+    return True
 
 
 @router.message(Onboarding.choosing_plan)
@@ -107,23 +122,33 @@ async def show_plans(event: Message | CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data.startswith("billing:buy:"))
 async def on_buy(cb: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
-    settings = get_settings()
     plan = Plan(cb.data.rsplit(":", 1)[1])
-    amount = billing.price_for(plan)
-
     await cb.answer()
+    await _send_payment_offer(cb.message, cb.from_user.id, plan, lang)
+
+
+async def _send_payment_offer(
+    target: Message, telegram_id: int, plan: Plan, lang: str
+) -> None:
+    """To'lov ekrani: Click → Telegram Payments → qo'lda (mavjudiga qarab).
+
+    Ikki joydan chaqiriladi: tariflar ekranidan va onboarding oxirida
+    (do'kon ulangach). Shu sabab `CallbackQuery` emas, xabar oladi.
+    """
+    settings = get_settings()
+    amount = billing.price_for(plan)
 
     if settings.click_enabled:
         # Click Shop API — to'lov Click sahifasida, tasdiq webhook orqali
         payment_id = await billing.create_payment(
-            cb.from_user.id, plan, PaymentMethod.CLICK
+            telegram_id, plan, PaymentMethod.CLICK
         )
         if payment_id is None:
-            await cb.message.answer(t("error", lang))
+            await target.answer(t("error", lang))
             return
 
         link = click.payment_link(payment_id, amount)
-        await cb.message.answer(
+        await target.answer(
             t(
                 "click_payment",
                 lang,
@@ -138,9 +163,9 @@ async def on_buy(cb: CallbackQuery, state: FSMContext) -> None:
     if settings.payment_provider_token:
         # Telegram Payments — karta ma'lumoti bizga tegmaydi
         payment_id = await billing.create_payment(
-            cb.from_user.id, plan, PaymentMethod.TELEGRAM
+            telegram_id, plan, PaymentMethod.TELEGRAM
         )
-        await cb.message.answer_invoice(
+        await target.answer_invoice(
             title=_plan_name(plan, lang),
             description=t("invoice_desc", lang, plan=_plan_name(plan, lang)),
             payload=f"sub:{plan.value}:{payment_id}",
@@ -156,14 +181,14 @@ async def on_buy(cb: CallbackQuery, state: FSMContext) -> None:
 
     # Provayder tokeni yo'q — qo'lda tasdiqlash
     payment_id = await billing.create_payment(
-        cb.from_user.id, plan, PaymentMethod.MANUAL
+        telegram_id, plan, PaymentMethod.MANUAL
     )
     if payment_id is None:
-        await cb.message.answer(t("error", lang))
+        await target.answer(t("error", lang))
         return
 
     details = settings.payment_details or t("payment_details_missing", lang)
-    await cb.message.answer(
+    await target.answer(
         t(
             "manual_payment",
             lang,

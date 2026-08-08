@@ -279,7 +279,7 @@ TEXTS: dict[str, str] = {
     # --- Onboarding: tarif tanlash (do'kon ulangandan keyin) ---
     "choose_plan": (
         "💎 <b>Tarifni tanlang</b>\n\n"
-        "Do'koningiz ulandi. Endi qanday ishlashimizni tanlang:\n\n"
+        "Qanday ishlashimizni tanlang:\n\n"
         "🎁 <b>Bepul — {trial_days} kun</b>\n"
         "Basic imkoniyatlari, to'lovsiz. Karta so'ralmaydi.\n\n"
         "📦 <b>Basic — {price_basic} so'm/oy</b>\n"
@@ -296,6 +296,11 @@ TEXTS: dict[str, str] = {
         "🎁 <b>Bepul muddat boshlandi — {trial_days} kun.</b>\n\n"
         "Basic imkoniyatlari ochiq. Istalgan payt /tarif orqali "
         "Pro'ga o'tishingiz mumkin."
+    ),
+    "plan_paid_later": (
+        "✅ <b>{plan}</b> tarifi tanlandi.\n\n"
+        "To'lov do'koningiz ulangandan keyin so'raladi — avval "
+        "botning sizning do'koningizda qanday ishlashini ko'rasiz."
     ),
     "plan_must_choose": (
         "💎 Avval tarifni tanlang — yuqoridagi tugmalardan birini bosing."

@@ -1,10 +1,10 @@
 """Onboarding oqimi holatlari (SPEC 7).
 
-til → oferta → telefon → yo'riqnoma → API kalit → tarif → asosiy menyu
+til → tarif → oferta → telefon → yo'riqnoma → API kalit → asosiy menyu
 
-Tarif tanlash do'kon ulangandan **keyin** turadi: seller avval o'z
-do'koni ulanganini ko'radi, keyin tarif tanlaydi. Tanlamaguncha asosiy
-menyu ochilmaydi.
+Tarif til tanlangandan keyin turadi va tanlash **majburiy**. Pullik
+tarif tanlansa to'lov shu yerda emas, do'kon ulangandan keyin
+so'raladi — oferta qabul qilinmasdan pul so'ramaymiz.
 """
 from __future__ import annotations
 
