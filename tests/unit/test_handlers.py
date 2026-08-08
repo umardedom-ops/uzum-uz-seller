@@ -80,25 +80,26 @@ class TestLanguageChoice:
         await start.on_lang(cb, state)
         assert (await state.get_data())["lang"] == "ru"
 
-    async def test_moves_to_oferta_step(self, state: FSMContext) -> None:
+    async def test_moves_to_plan_step(self, state: FSMContext) -> None:
+        """Til tanlangach darhol tarif — oraliq «Boshlash» tugmasi yo'q."""
         cb = make_callback("lang:uz")
         await start.on_lang(cb, state)
-        assert await state.get_state() == Onboarding.accepting_oferta.state
+        assert await state.get_state() == Onboarding.choosing_plan.state
 
 
 class TestPlanStep:
-    async def test_start_offers_three_plans(self, state: FSMContext) -> None:
-        """Til tanlangandan keyingi qadam — tarif tanlash, 3 variant."""
-        await state.update_data(lang="uz")
-        cb = make_callback("start:go")
-        await start.on_start(cb, state)
+    async def test_language_choice_offers_three_plans(
+        self, state: FSMContext
+    ) -> None:
+        """Til tanlangandan keyingi BIRINCHI ekran — 3 variantli tarif."""
+        cb = make_callback("lang:uz")
+        await start.on_lang(cb, state)
 
-        text = sent_text(cb.message.edit_text)
+        text = sent_text(cb.message.answer)
         assert "Tarifni tanlang" in text
         assert "{" not in text
-        assert await state.get_state() == Onboarding.choosing_plan.state
 
-        kb = cb.message.edit_text.await_args.kwargs["reply_markup"]
+        kb = cb.message.answer.await_args.kwargs["reply_markup"]
         labels = [b.text for row in kb.inline_keyboard for b in row]
         assert len(labels) == 3
         assert any("Bepul" in x for x in labels)

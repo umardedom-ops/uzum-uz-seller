@@ -30,7 +30,6 @@ from app.bot.keyboards.onboarding import (
     lang_kb,
     oferta_kb,
     phone_kb,
-    start_kb,
 )
 from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
@@ -113,33 +112,17 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
     )
 
     s = get_settings()
+
+    # Xush kelibsiz — tugmasiz, chunki tarif tanlash darhol keyin keladi.
     await cb.message.edit_text(
-        t(
-            "welcome",
-            lang,
-            trial_days=s.trial_days,
-            price=_money(s.price_basic),
-        ),
-        reply_markup=start_kb(lang),
+        t("welcome", lang, trial_days=s.trial_days, price=_money(s.price_basic))
     )
-    await state.set_state(Onboarding.accepting_oferta)
-    await cb.answer()
 
-
-# --- 3. Boshlash → tarif tanlash ---
-@router.callback_query(F.data == "start:go")
-async def on_start(cb: CallbackQuery, state: FSMContext) -> None:
-    """Tarif tanlash — til tanlangandan keyingi birinchi qadam.
-
-    Tanlash **majburiy**: tanlanmaguncha oqim davom etmaydi. Pullik
-    tarif tanlansa to'lov shu yerda emas, do'kon ulangandan keyin
-    so'raladi — oferta qabul qilinmasdan pul so'rash noto'g'ri va
-    seller hali mahsulotni ishlayotganini ko'rmagan bo'ladi.
-    """
-    lang = await _lang(state)
-    s = get_settings()
+    # Tarif tanlash — til tanlangandan keyingi BIRINCHI qadam, oraliq
+    # "Boshlash" tugmasisiz. Tanlash majburiy: tanlanmaguncha oqim
+    # davom etmaydi.
     await state.set_state(Onboarding.choosing_plan)
-    await cb.message.edit_text(
+    await cb.message.answer(
         t(
             "choose_plan",
             lang,
