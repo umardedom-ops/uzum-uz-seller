@@ -29,3 +29,6 @@ venv/
 Thumbs.db
 .pytest_cache/
 .ruff_cache/
+
+# Sverka uchun olingan xom API javoblari — biznes maʼlumoti, gitga tushmaydi
+docs/sverka/raw-*.json

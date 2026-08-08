@@ -24,6 +24,7 @@ from app.services.mappers import (
     map_stock,
     money,
     ms_to_dt,
+    sku_index_by_full_title,
     sold_qty,
 )
 
@@ -192,13 +193,19 @@ class TestProductStock:
 
 
 class TestOrders:
+    """Buyurtmalar. Maydon nomlari 2026-08-07 da jonli javobdan olingan."""
+
+    #: `skuFullTitle` → `skuId`. Buyurtmani SKU ga bog'laydigan yagona yo'l.
+    INDEX = {"AZIKO-КРОС-ТЕМНСИН-44": "763221"}
+
     def _raw(self, **kwargs: object) -> dict:
         base = {
             "id": 999,
             "orderId": 555,
-            "productId": 3082631,
+            "productId": 394566,
+            "skuTitle": "AZIKO-КРОС-ТЕМНСИН-44",
             "amount": 3,
-            "sellerPrice": 150000,
+            "sellPrice": 150000,
             "commission": 30000,
             "logisticDeliveryFee": 12000,
             "date": 1727427283895,
@@ -209,7 +216,7 @@ class TestOrders:
 
     def test_maps_audit_critical_fields(self) -> None:
         """Komissiya va logistika — 5.3 va 5.4 auditlarining asosi."""
-        row = map_order(self._raw())
+        row = map_order(self._raw(), self.INDEX)
 
         assert row is not None
         assert row["uzum_order_id"] == "555"
@@ -219,19 +226,74 @@ class TestOrders:
         assert row["delivery_amount"] == Decimal("12000")
         assert row["created_at_uzum"] is not None
 
+    def test_resolves_sku_not_product_id(self) -> None:
+        """❗ SKU `skuFullTitle` orqali topiladi, `productId` orqali emas.
+
+        `productId` mahsulot darajasidagi raqam (394566). Uni SKU deb
+        yozish `products`/`stock_snapshots` bilan bog'lanishni butunlay
+        uzadi: audit "sotilgan = 0" deb hisoblab, soxta yo'qotish
+        chiqaradi.
+        """
+        row = map_order(self._raw(), self.INDEX)
+        assert row is not None
+        assert row["sku"] == "763221"
+        assert row["sku"] != "394566"
+
+    def test_unknown_sku_is_skipped(self) -> None:
+        """Nom topilmasa yozmaymiz — noto'g'ri kalit soxta da'vo beradi."""
+        assert map_order(self._raw(skuTitle="YO'Q-NOM"), self.INDEX) is None
+
+    def test_without_index_nothing_is_written(self) -> None:
+        assert map_order(self._raw()) is None
+
     def test_missing_order_id_is_skipped(self) -> None:
-        assert map_order({"amount": 1}) is None
+        assert map_order({"amount": 1}, self.INDEX) is None
 
     def test_cancelled_order_not_counted_as_sold(self) -> None:
         """5.1 formulasida bekor qilingan buyurtma `sotilgan` emas."""
-        row = map_order(self._raw(status="CANCELED"))
+        row = map_order(self._raw(status="CANCELED"), self.INDEX)
         assert row is not None
         assert sold_qty(row) == 0
 
     def test_active_order_counted_as_sold(self) -> None:
-        row = map_order(self._raw(status="TO_WITHDRAW"))
+        row = map_order(self._raw(status="TO_WITHDRAW"), self.INDEX)
         assert row is not None
         assert sold_qty(row) == 3
+
+
+class TestSkuIndex:
+    """`skuFullTitle → skuId` jadvali."""
+
+    RAW = [
+        {
+            "productId": 394566,
+            "skuList": [
+                {"skuId": 704077, "skuTitle": "ТЕМНСИН-40",
+                 "skuFullTitle": "AZIKO-КРОС-ТЕМНСИН-40"},
+                {"skuId": 763221, "skuTitle": "ТЕМНСИН-44",
+                 "skuFullTitle": "AZIKO-КРОС-ТЕМНСИН-44"},
+            ],
+        }
+    ]
+
+    def test_builds_index(self) -> None:
+        index = sku_index_by_full_title(self.RAW)
+        assert index["AZIKO-КРОС-ТЕМНСИН-40"] == "704077"
+        assert index["AZIKO-КРОС-ТЕМНСИН-44"] == "763221"
+
+    def test_short_sku_title_is_not_the_key(self) -> None:
+        """`skuTitle` («ТЕМНСИН-40») noyob emas — kalit bo'la olmaydi.
+
+        Haqiqiy do'konda 220 SKU bor edi, lekin atigi 21 xil `skuTitle`.
+        """
+        assert "ТЕМНСИН-40" not in sku_index_by_full_title(self.RAW)
+
+    def test_skips_incomplete_records(self) -> None:
+        raw = [{"skuList": [{"skuId": 1}, {"skuFullTitle": "X"}]}]
+        assert sku_index_by_full_title(raw) == {}
+
+    def test_empty_input(self) -> None:
+        assert sku_index_by_full_title([]) == {}
 
 
 class TestReturns:
@@ -276,6 +338,62 @@ class TestReturns:
 
     def test_no_id_is_skipped(self) -> None:
         assert map_returns({"returnItems": [{"skuId": 1}]}) == []
+
+    def test_packed_amount_wins_over_planned(self) -> None:
+        """Rejadagi emas, haqiqatda yig'ilgan miqdor olinadi.
+
+        `amount` — rejada, `packedAmount` — omborda sanab yig'ilgani.
+        Reja bo'yicha hisoblansa yo'qotish soxta chiqadi.
+        """
+        rows = map_returns(
+            self._raw(returnItems=[{"skuId": 1, "amount": 5, "packedAmount": 2}])
+        )
+        assert rows[0]["qty"] == 2
+
+    def test_falls_back_to_planned_when_not_packed(self) -> None:
+        """Hali yig'ilmagan qaytarishda `packedAmount` bo'lmaydi."""
+        rows = map_returns(self._raw(returnItems=[{"skuId": 1, "amount": 5}]))
+        assert rows[0]["qty"] == 5
+
+    def test_live_shape_from_detail_endpoint(self) -> None:
+        """2026-08-07 da AZIKO do'konidan olingan haqiqiy javob shakli.
+
+        ⚠️ `returnItems` FAQAT tafsilot endpointida keladi
+        (`/v1/shop/{id}/return/{returnId}`). Ro'yxat so'rovida bu maydon
+        yo'q — shu sabab `returns` jadvali oylab bo'sh turgan edi.
+        """
+        rows = map_returns(
+            {
+                "id": 1006486595,
+                "dateCreated": 1750256778985,
+                "status": "COMPLETED",
+                "completedDate": 1776065578860,
+                "type": "DEFECTED",
+                "externalNumber": None,
+                "returnItems": [
+                    {
+                        "id": 1817979,
+                        "skuId": 704077,
+                        "amount": 1,
+                        "packedAmount": 1,
+                        "purchasePrice": 250000,
+                    }
+                ],
+            }
+        )
+        assert len(rows) == 1
+        assert rows[0]["sku"] == "704077"
+        assert rows[0]["qty"] == 1
+        assert rows[0]["reason"] == "DEFECTED"
+        assert rows[0]["received_at"] is not None
+
+    def test_list_response_without_items_yields_nothing(self) -> None:
+        """Ro'yxat javobi (tarkibsiz) — hech narsa bermaydi.
+
+        Bu regressiya testi: agar kimdir sync'ni yana bir qadamli qilsa,
+        jadval jimgina bo'sh qoladi va bu test buni ushlaydi.
+        """
+        assert map_returns({"id": 1006486595, "status": "COMPLETED"}) == []
 
 
 class TestStock:

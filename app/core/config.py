@@ -33,8 +33,12 @@ class Settings(BaseSettings):
     uzum_api_base: str = Field(
         "https://api-seller.uzum.uz/api/seller-openapi", alias="UZUM_API_BASE"
     )
-    # Dev/test uchun kalit. Ishlab chiqarishda har seller kaliti bazadan keladi.
-    uzum_api_key: str | None = Field(None, alias="UZUM_API_KEY")
+    # ⚠️ Bu yerda umumiy Uzum kaliti YO'Q va bo'lmasligi kerak. Har bir
+    # do'kon kaliti `shop_credentials` jadvalida shifrlangan holda
+    # saqlanadi va `sync._api_secret()` orqali olinadi. Global kalit
+    # xavfli edi: 2026-08-07 da `.env` da butunlay boshqa do'konning
+    # (Elore Parfume, 125841) kaliti turgani aniqlandi — u hech qayerda
+    # ishlatilmasa ham, tekshiruv paytida chalg'itdi.
     uzum_rate_limit_per_sec: float = Field(1.0, alias="UZUM_RATE_LIMIT_PER_SEC")
     # Birinchi ulanishda qancha tarix tortiladi. Buyurtma/qaytarish/moliya
     # uchun API tarix beradi — qoldiq uchun bermaydi (docs/api-inventory.md).

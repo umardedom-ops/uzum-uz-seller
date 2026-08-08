@@ -156,16 +156,24 @@ class UzumApiClient(AbstractUzumClient):
     async def get_orders(
         self, shop_id: str, period: DateRange, page: PageParams | None = None
     ) -> list[RawRecord]:
-        """GET /v1/finance/orders — sotuvlar (5.1 dagi `sotilgan`)."""
+        """GET /v1/finance/orders — sotuvlar (5.1 dagi `sotilgan`).
+
+        ⚠️ Sana filtri YUBORILMAYDI — qaytarishlardagi kabi hammasi
+        olinadi, davr bo'yicha filtr `services` tomonida.
+
+        Sabab (2026-08-07 da jonli aniqlangan): `dateFrom`/`dateTo`
+        millisekundda yuborilganda endpoint xato bermaydi, shunchaki
+        **bo'sh ro'yxat** qaytaradi. Shu sabab `orders` jadvali oylab
+        bo'sh turgan va sotuvga tayanadigan auditlar jimgina
+        ishlamagan. Sekundda yuborilganda esa natija tushunarsiz
+        (730 kun → 6 yozuv, 1200 kun → 539 yozuv). Filtrsiz so'rov
+        esa har doim to'liq va izchil ro'yxat beradi.
+        """
         return await self._get_all_pages(
             "/v1/finance/orders",
             rate_key=shop_id,
             keys=("orderItems",),
-            params={
-                "shopIds": shop_id,
-                "dateFrom": to_ms(period.date_from),
-                "dateTo": to_ms(period.date_to, end_of_day=True),
-            },
+            params={"shopIds": shop_id},
             page=page,
         )
 
@@ -183,6 +191,25 @@ class UzumApiClient(AbstractUzumClient):
             keys=("returns", "sellerReturns"),
             page=page,
         )
+
+    async def get_return_detail(self, shop_id: str, return_id: str) -> RawRecord:
+        """GET /v1/shop/{shopId}/return/{returnId} — qaytarish tarkibi.
+
+        ⚠️ Ro'yxat endpointi (`get_returns`) faqat sarlavhani beradi —
+        `returnItems` maydoni unda YO'Q. SKU kesimidagi tarkib faqat shu
+        tafsilot so'rovida keladi (2026-08-07 da jonli tekshirilgan).
+        Yuk xatlaridagi `invoice` → `invoice/products` naqshining aynan
+        o'zi.
+        """
+        data = await self._get(
+            f"/v1/shop/{shop_id}/return/{return_id}", rate_key=shop_id
+        )
+        if isinstance(data, dict):
+            payload = data.get("payload")
+            if isinstance(payload, dict):
+                return payload
+            return data
+        return {}
 
     # ------------------------------------------------------------------ #
     # Ombor

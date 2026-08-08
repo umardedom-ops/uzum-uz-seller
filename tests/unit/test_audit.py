@@ -32,6 +32,7 @@ from app.services.audit import (
     total_claimable,
     total_watching,
 )
+from app.services.audit_runner import DataHealth
 
 T1 = date(2026, 7, 1)
 T2 = date(2026, 7, 31)
@@ -207,6 +208,39 @@ class TestCumulativeLoss:
         """Qabul ma'lumoti bor bo'lsa — audit ishlaydi."""
         result = audit_cumulative_loss(self._stock())
         assert result is not None and result.qty == 5
+
+    def test_sold_out_sku_is_clean(self) -> None:
+        """❗ AZIKO regressiyasi (2026-08-07 kabinet sverkasi).
+
+        Sotilib tugagan SKU ning tipik holati: nechta olingan bo'lsa,
+        shuncha sotilgan, omborda hech narsa yo'q. Bu **mukammal izchil**
+        ombor — yo'qotish yo'q.
+
+        Bir paytlar bu yerga Uzumning `quantityReturned` maydoni
+        `total_returned` sifatida berilar edi. Natijada aynan shu holat
+        "3 dona yo'qolgan" bo'lib chiqardi va butun do'kon bo'yicha
+        17 ta soxta topilma, 7 630 000 so'm ko'rsatilgan edi.
+        `quantityReturned` — mijoz qaytargan miqdor, u `quantitySold`
+        ichida allaqachon bor; omborga kirim EMAS.
+        """
+        stock = self._stock(
+            total_received=3, total_sold=3, total_returned=0, qty_now=0
+        )
+        assert stock.expected_qty == 0
+        assert audit_cumulative_loss(stock) is None
+
+    def test_double_counted_returns_would_be_false_positive(self) -> None:
+        """Xato qaytsa nima bo'lishini hujjatlashtiradi.
+
+        Agar kimdir `quantityReturned` ni yana `total_returned` ga ulasa,
+        yuqoridagi toza SKU 3 donalik "yo'qotish" bo'lib chiqadi. Test
+        buni ataylab ko'rsatadi — audit_runner'dagi izohga havola.
+        """
+        wrong = self._stock(
+            total_received=3, total_sold=3, total_returned=3, qty_now=0
+        )
+        result = audit_cumulative_loss(wrong)
+        assert result is not None and result.qty == 3  # ← soxta natija
 
     def test_returns_exceeding_sales_blocks_result(self) -> None:
         """Sotilmagan tovar qaytmaydi — bunday raqam manba xatosi.
@@ -553,3 +587,48 @@ class TestTotals:
     def test_empty_list(self) -> None:
         assert total_claimable([]) == Decimal("0.00")
         assert total_watching([]) == Decimal("0.00")
+
+
+class TestDataHealth:
+    """Manba bo'sh bo'lsa buni AYTISH kerak.
+
+    Eng qimmat xato — jimgina "yo'qotish topilmadi" deyish. Seller
+    o'zini xotirjam his qiladi, aslida esa audit umuman ishlamagan.
+    2026-08-07: AZIKO do'konida `/v1/finance/orders` 365 kunga ham bo'sh
+    qaytardi, natijada 6 auditdan 4 tasi jim qoldi.
+    """
+
+    def _health(self, **kwargs: int) -> DataHealth:
+        base = {"orders": 10, "returns": 2, "receipts": 361, "stock_days": 442}
+        base.update(kwargs)
+        return DataHealth(**base)  # type: ignore[arg-type]
+
+    def test_full_data_is_complete(self) -> None:
+        health = self._health()
+        assert health.is_complete
+        assert health.missing == []
+        assert health.blocked_audits == []
+
+    def test_empty_orders_is_reported(self) -> None:
+        health = self._health(orders=0)
+        assert not health.is_complete
+        assert "sotuvlar tarixi" in health.missing
+        assert "komissiya" in health.blocked_audits
+
+    def test_empty_receipts_blocks_cumulative_audit(self) -> None:
+        health = self._health(receipts=0)
+        assert not health.is_complete
+        assert "to'plangan yo'qotish" in health.blocked_audits
+
+    def test_returns_alone_does_not_mark_incomplete(self) -> None:
+        """Qaytarish bo'lmasligi normal — har do'konda ham qaytarish yo'q."""
+        assert self._health(returns=0).is_complete
+
+    def test_missing_names_are_human_readable(self) -> None:
+        """Matn to'g'ridan-to'g'ri sellerga ko'rsatiladi."""
+        health = self._health(orders=0, receipts=0, stock_days=0)
+        assert health.missing == [
+            "sotuvlar tarixi",
+            "omborga qabul (yuk xatlari)",
+            "qoldiq surati",
+        ]

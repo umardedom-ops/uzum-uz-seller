@@ -9,10 +9,11 @@ yangilanadi, dublikat yaratilmaydi.
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
@@ -91,6 +92,80 @@ async def run_audit(
         len(findings),
     )
     return findings
+
+
+# ---------------------------------------------------------------------- #
+# Ma'lumot to'liqligi
+# ---------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class DataHealth:
+    """Qaysi manba bo'sh — demak qaysi audit ishlay olmaydi.
+
+    Buni bilmasdan "yo'qotish topilmadi" deyish — yolg'on tinchlik.
+    Manba bo'sh bo'lgani "hammasi joyida" degani emas (2026-08-07:
+    AZIKO do'konida `/v1/finance/orders` 365 kun uchun ham bo'sh
+    qaytardi, natijada 6 auditdan 4 tasi jimgina hech narsa
+    ko'rsatmasdi).
+    """
+
+    orders: int
+    returns: int
+    receipts: int
+    stock_days: int
+
+    #: Manba bo'sh bo'lsa — shu auditlar ishlamaydi
+    _BLOCKS = {
+        "orders": ("davriy yo'qotish", "komissiya"),
+        "receipts": ("to'plangan yo'qotish",),
+        "stock_days": ("yo'qotish (qoldiqsiz hisoblab bo'lmaydi)",),
+    }
+
+    @property
+    def missing(self) -> list[str]:
+        """Bo'sh manbalar nomi (o'zbekcha)."""
+        names = {
+            "orders": "sotuvlar tarixi",
+            "receipts": "omborga qabul (yuk xatlari)",
+            "stock_days": "qoldiq surati",
+        }
+        return [
+            names[key]
+            for key in ("orders", "receipts", "stock_days")
+            if getattr(self, key) == 0
+        ]
+
+    @property
+    def blocked_audits(self) -> list[str]:
+        blocked: list[str] = []
+        for key, audits in self._BLOCKS.items():
+            if getattr(self, key) == 0:
+                blocked.extend(audits)
+        return sorted(set(blocked))
+
+    @property
+    def is_complete(self) -> bool:
+        return not self.missing
+
+
+async def data_health(shop_id: int) -> DataHealth:
+    """Do'kon bo'yicha manbalar to'ldirilganini tekshiradi."""
+    async with session_scope() as session:
+        return DataHealth(
+            orders=await _count(session, Order, shop_id),
+            returns=await _count(session, Return, shop_id),
+            receipts=await _count(session, StockMovement, shop_id),
+            stock_days=await _count(session, StockSnapshot, shop_id),
+        )
+
+
+async def _count(session: AsyncSession, model: type, shop_id: int) -> int:
+    return (
+        await session.scalar(
+            select(func.count()).select_from(model).where(model.shop_id == shop_id)
+        )
+    ) or 0
 
 
 # ---------------------------------------------------------------------- #
@@ -196,7 +271,22 @@ async def _run_cumulative_audit(
             sku=sku,
             qty_now=qty_now,
             total_received=total_received,
-            total_returned=product.qty_returned_total or 0,
+            # ❗ Qaytarish kutilgan qoldiqqa QO'SHILMAYDI (2026-08-07 sverkasi).
+            #
+            # `quantityReturned` — "mijoz qaytargan", u `quantitySold`
+            # ichida allaqachon hisoblangan. Qo'shilsa qaytarish ikki
+            # marta sanaladi va SOXTA yo'qotish chiqadi: AZIKO do'konida
+            # shu had 17 ta yolg'on topilma, 7.63 mln so'm bergan
+            # (16 tasida farq aynan `quantityReturned` ga teng edi,
+            # Uzumning `quantityMissing` esa hammasida 0).
+            #
+            # `returns` jadvalidagi yozuvlar ham bu yerga tushmaydi:
+            # `/v1/shop/{id}/return` — omborga KIRIM emas, sotuvchiga
+            # CHIQIM (turi `DEFECTED`). Ularni chiqim sifatida qo'shish
+            # ham noto'g'ri bo'lardi — Uzumning `quantityDefected` maydoni
+            # ularni allaqachon sanaydi (SKU 704077: yuk xatida 1 dona,
+            # `quantityDefected` ham 1).
+            total_returned=0,
             total_sold=product.qty_sold_total or 0,
             total_written_off=(product.qty_defected or 0)
             + (product.qty_archived or 0),
@@ -552,8 +642,28 @@ async def _persist(
 
     Mavjud yozuv yangilanadi — lekin da'vo qilingan yoki hal bo'lganlarga
     tegilmaydi, aks holda seller yuborgan da'vo holati yo'qoladi.
+
+    Endi topilmaydigan farqlar **o'chiriladi**. Busiz bir marta yozilgan
+    xato natija abadiy qolardi: formula tuzatilsa ham seller eski soxta
+    summani ko'raverardi (2026-08-07 da aniqlandi — audit 0 qaytardi,
+    lekin bazadagi 17 ta eski yozuv joyida turdi).
     """
     protected = {DiscrepancyStatus.CLAIMED, DiscrepancyStatus.RESOLVED}
+
+    # Bu davr uchun endi o'rinli bo'lmagan yozuvlarni olib tashlaymiz
+    current = {(f.sku, f.kind) for f in findings}
+    stale = await session.scalars(
+        select(Discrepancy).where(
+            Discrepancy.shop_id == shop_id,
+            Discrepancy.period_from == period_from,
+            Discrepancy.period_to == period_to,
+        )
+    )
+    for row in stale:
+        if row.status in protected:
+            continue  # seller da'vo yuborgan — tarixni buzmaymiz
+        if (row.sku, row.kind) not in current:
+            await session.delete(row)
 
     for finding in findings:
         existing = await session.scalar(

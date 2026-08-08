@@ -6,11 +6,12 @@
 ## Qisqacha
 
 Uzum Market sellerlari uchun Telegram bot. Kod to'liq yozilgan,
-**268 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
+**286 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
 bilan ishlaydi.
 
-**Asosiy savol hali ochiq:** audit raqamlari to'g'rimi — kabinet bilan
-solishtirilmagan.
+**Audit raqamlari 2026-08-07 da tekshirildi va tuzatildi** —
+`docs/sverka/xulosa.md`. Soxta 7,63 mln so'm yo'qoldi, ishlamayotgan
+4 ta audit ishga tushdi.
 
 ## Ishlaydigan narsalar
 
@@ -19,7 +20,8 @@ solishtirilmagan.
 | Uzum Seller API klienti (faqat GET) | ✅ jonli sinalgan |
 | Onboarding: til → oferta → telefon → API kalit | ✅ |
 | Kalit berilgach **darhol** sync + audit | ✅ |
-| 6 xil audit (5.1–5.5 + saqlash xarajati) | ⚠️ hisoblaydi, tasdiqlanmagan |
+| 6 xil audit (5.1–5.5 + saqlash xarajati) | ✅ sverka qilingan |
+| Manba bo'sh bo'lsa ochiq aytiladi | ✅ yangi |
 | Excel / PDF / pretenziya | ✅ |
 | FBS yorliqlar, qoldiq, yunit-iqtisodiyot | ✅ |
 | Obuna: 3 kun sinov, Basic 149k / Pro 299k | ✅ |
@@ -27,19 +29,28 @@ solishtirilmagan.
 | Admin: birinchi `/start` bosgan avtomatik admin | ✅ |
 | Docker Compose + PostgreSQL | ✅ qurilmagan (Docker yo'q) |
 
-## ❗ Eng muhim ochiq masala
+## Sverka natijasi (2026-08-07)
 
-Bot AZIKO do'konida **17 ta yo'qotish (7.6 mln so'm)** ko'rsatyapti.
-Raqamlar ichki jihatdan izchil, lekin **kabinet bilan solishtirilmagan**.
+17 ta "yo'qolgan tovar" (7,63 mln so'm) **soxta** ekani aniqlandi va
+sabab topildi: `quantityReturned` kutilgan qoldiqqa qo'shilgan, ya'ni
+qaytarish ikki marta hisoblangan. Dalil: 16 tasida farq aynan shu
+maydonga teng edi, Uzumning `quantityMissing` esa hammasida 0.
 
-Shubha: Uzumning `quantityReturned` maydoni "omborga qaytib tushgan"ni
-anglatadimi yoki "mijoz qaytargan, hali yo'lda"ni? Ikkinchisi bo'lsa,
-qaytarishlar ikki marta hisoblanayapti.
+Yo'l-yo'lakay yana 5 ta xato topildi — uchtasi auditlarni butunlay
+o'chirib qo'ygan edi (sana millisekundda yuborilgan, buyurtma SKU ga
+`productId` orqali bog'langan, qaytarish tarkibi so'ralmagan).
 
-**Qilinishi kerak (SPEC 10):** bitta SKU olib (masalan `693852`, 3 dona),
-Uzum kabinetida qo'lda solishtirish. Natijaga qarab formulani tuzatish.
+| | Oldin | Keyin |
+|---|---|---|
+| Soxta yo'qotish | 17 ta / 7 630 000 | 0 |
+| `orders` | bo'sh | 539 |
+| `returns` | bo'sh | 2 |
+| Ishlayotgan audit | 6 dan 1 | 6 dan 6 |
 
-Tekshirilmaguncha sellerlar Uzumga da'vo yubormasligi kerak.
+Hozir topilayotgan yagona farq — komissiya: 3 SKU, 30 200 so'm, har biri
+buyurtma yozuvi bilan tasdiqlanadi.
+
+Batafsil: `docs/sverka/xulosa.md`.
 
 ## Yo'l-yo'lakay tuzatilgan xatolar (takrorlanmasin)
 
@@ -54,6 +65,16 @@ Tekshirilmaguncha sellerlar Uzumga da'vo yubormasligi kerak.
    ketgan edi → bot yiqilardi. Endi handler testlari bor.
 5. **Oferta `localhost` havolasi** telefondan ochilmasdi → matn Telegram
    ichida, "Oferta" tugmasi fayl yuboradi.
+6. **`quantityReturned` kutilgan qoldiqqa qo'shilardi** → qaytarish ikki
+   marta hisoblanib, 7,63 mln soxta yo'qotish chiqargan. Endi qo'shilmaydi.
+7. **`/v1/finance/orders` ga sana millisekundda yuborilardi** → endpoint
+   xato bermay, bo'sh ro'yxat qaytarardi. Endi sana filtri yuborilmaydi.
+8. **Buyurtma SKU ga `productId` orqali bog'lanardi** → hech qachon mos
+   kelmasdi. Kalit: buyurtmadagi `skuTitle` = mahsulotdagi `skuFullTitle`.
+9. **Qaytarish tarkibi** ro'yxat javobida yo'q — `/return/{id}` tafsiloti
+   so'raladi. Miqdor `packedAmount` dan olinadi.
+10. **Eskirgan topilmalar o'chmasdi** → tuzatilgan formuladan keyin ham
+    eski soxta summa ko'rinardi. Endi `_persist` ularni tozalaydi.
 
 ## Ma'lumotlar bazasi holati
 
@@ -61,8 +82,16 @@ Tekshirilmaguncha sellerlar Uzumga da'vo yubormasligi kerak.
 Foydalanuvchi: 2 (8266195913 — admin, 7889583510 — seller)
 Do'kon: AZIKO (7973), AZIKO PLAST (25273)
 Mahsulot: 232 · Tannarxi bor: 228
-Ombor harakati: 378 · Farqlar: 17
+Ombor harakati: 378 · Buyurtma: 539 · Qaytarish: 2
+Qoldiq surati: 464 · Farqlar: 0
 ```
+
+> Zaxira nusxa: `uzumbot.db.bak-20260807-220407` (sverkadan oldingi holat).
+
+> ℹ️ AZIKO — **sinov do'koni**, sotuv 2024-noyabrda to'xtagan. Shuning
+> uchun buyurtmalar 2023-04-25 … 2024-11-21 oralig'ida va yangi sotuv
+> yo'q. Bu xato emas. Yangi davrlar bo'yicha audit bo'sh chiqishi
+> normal — ma'lumot yo'qligi endi ochiq aytiladi (`data_health`).
 
 ## Ishga tushirish
 
@@ -76,8 +105,7 @@ cd "E:\IT loihalar\UZUMUZBOT"
 
 ## Keyingi qadamlar (muhimlik tartibida)
 
-1. **Audit raqamlarini kabinet bilan solishtirish** ← hammasidan muhim
-2. GitHub'ga push + EasyPanel'ga deploy (`docs/easypanel.md`)
+1. GitHub'ga push + EasyPanel'ga deploy (`docs/easypanel.md`)
 3. Click: yangi `CLICK_SECRET_KEY`, domen, webhook URL sozlash
 4. Ofertaga rekvizit kerak bo'lsa qo'shish (hozir rekvizitsiz)
 5. ~200 do'kondan keyin: sync'ni parallel qilish, audit yig'indilarini
@@ -85,7 +113,21 @@ cd "E:\IT loihalar\UZUMUZBOT"
 
 ## Maxfiy ma'lumot
 
-Barchasi `.env` da (git'ga ham, Docker obraziga ham tushmaydi).
-Chat tarixiga tushgan va **almashtirilishi kerak**:
-- Uzum API kaliti
-- Click `SECRET_KEY`, merchant kabinet paroli
+Do'kon kalitlari `.env` da EMAS — `shop_credentials` jadvalida
+shifrlangan holda saqlanadi (`sync._api_secret()`). `.env` da faqat
+bot/to'lov sozlamalari bor; git'ga ham, Docker obraziga ham tushmaydi.
+
+> `UZUM_API_KEY` **olib tashlandi** (2026-08-07). U kodda hech qayerda
+> ishlatilmagan, lekin ichida butunlay boshqa do'konning (`Elore
+> Parfume`, 125841) kaliti turgan va tekshiruv paytida chalg'itgan.
+> Zaxira: `.env.bak-20260807-*`.
+
+**Sizning qo'lingizdagi ish** — chatga tushgan kalitlarni almashtirish
+(buni faqat kabinet egasi qila oladi):
+
+- **Uzum API kaliti** — Seller kabinet → API kalitlari → eskisini
+  o'chirib, yangisini yarating. Keyin botda do'konni qayta ulang
+  (`/start`), yangi kalit bazaga shifrlangan holda tushadi.
+- **Click `SECRET_KEY`** — merchant.click.uz → sozlamalar. Yangisini
+  `.env` dagi `CLICK_SECRET_KEY` ga yozing.
+- **Click merchant kabinet paroli**.

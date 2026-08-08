@@ -178,6 +178,14 @@ TEXTS: dict[str, str] = {
         "Ma'lumot yig'ilishi va tahlil qilinishi bir necha kun oladi — "
         "qoldiq tarixi to'planishi kerak. Topilishi bilan xabar beraman."
     ),
+    "audit_data_missing": (
+        "⚠️ <b>Tekshiruv to'liq o'tkazilmadi.</b>\n\n"
+        "Uzum quyidagi ma'lumotni bermadi: <b>{sources}</b>.\n"
+        "Shu sababli ishlamagan auditlar: {audits}.\n\n"
+        "Bu «yo'qotish yo'q» degani <b>emas</b> — shunchaki tekshirib "
+        "bo'lmadi. Ko'pincha sabab: API kalitida moliya bo'limiga ruxsat "
+        "yo'q. Uzum kabinetida xodim huquqlarini tekshiring."
+    ),
     # --- Yunit-iqtisodiyot ---
     "econ_header": "🧮 <b>Yunit-iqtisodiyot</b> · {start} — {end}",
     "econ_revenue": "Tushum: <b>{value}</b> so'm",

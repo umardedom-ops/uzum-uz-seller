@@ -90,8 +90,13 @@ async def sync_shop(shop_id: int, *, full: bool = False) -> int:
         run_id = run.id
 
     try:
-        total += await _sync_products(shop_id, uzum_shop_id, client)
-        total += await _sync_orders(shop_id, uzum_shop_id, client, period)
+        product_count, sku_index = await _sync_products(
+            shop_id, uzum_shop_id, client
+        )
+        total += product_count
+        total += await _sync_orders(
+            shop_id, uzum_shop_id, client, period, sku_index
+        )
         total += await _sync_returns(shop_id, uzum_shop_id, client, period)
         total += await _sync_finance(shop_id, uzum_shop_id, client, period)
         total += await _sync_stocks(shop_id, uzum_shop_id, client)
@@ -128,12 +133,18 @@ async def sync_shop(shop_id: int, *, full: bool = False) -> int:
 # ---------------------------------------------------------------------- #
 
 
-async def _sync_products(shop_id: int, uzum_shop_id: str, client: UzumApiClient) -> int:
+async def _sync_products(
+    shop_id: int, uzum_shop_id: str, client: UzumApiClient
+) -> tuple[int, dict[str, str]]:
     """Mahsulot katalogi + qoldiq surati.
 
     Bitta so'rov ikkalasini ham beradi: mahsulot javobida FBO
     (`quantityActive`) va FBS (`quantityFbs`) qoldiqlari bor. Shu sabab
     ombor qoldig'i uchun kabinet sessiyasi kerak emas.
+
+    Yozuvlar soni bilan birga `skuFullTitle → skuId` jadvalini ham
+    qaytaradi — buyurtmalarni SKU ga bog'lash faqat shu orqali mumkin
+    (`mappers.map_order`).
     """
     raw = await client.get_products(uzum_shop_id)
     products = [row for item in raw for row in m.map_products(item)]
@@ -142,14 +153,45 @@ async def _sync_products(shop_id: int, uzum_shop_id: str, client: UzumApiClient)
     async with session_scope() as session:
         count = await repo.upsert_products(session, shop_id, products)
         await repo.upsert_stock_snapshot(session, shop_id, stocks)
-    return count
+    return count, m.sku_index_by_full_title(raw)
 
 
 async def _sync_orders(
-    shop_id: int, uzum_shop_id: str, client: UzumApiClient, period: DateRange
+    shop_id: int,
+    uzum_shop_id: str,
+    client: UzumApiClient,
+    period: DateRange,
+    sku_index: dict[str, str],
 ) -> int:
+    """Buyurtmalar — Uzumda bor hammasi saqlanadi.
+
+    Davr bo'yicha kesish bu yerda QILINMAYDI. `orders` — tarixiy nusxa,
+    davr filtri audit paytida qo'llanadi. Sync paytida kesilsa ma'lumot
+    butunlay yo'qoladi: AZIKO do'konida 539 ta buyurtmaning hammasi
+    2023–2024 yillarga tegishli edi va 365 kunlik oyna ularning
+    barchasini tashlab yuborardi (2026-08-07 da aniqlandi).
+    """
+    if not sku_index:
+        # Bog'lash jadvalisiz har bir qator tashlab yuboriladi — bu
+        # jimgina bo'sh jadval degani. Sababi bilan aytamiz.
+        log.warning(
+            "SKU jadvali bo'sh — buyurtmalar bog'lanmaydi: shop_id=%s", shop_id
+        )
+        return 0
+
     raw = await client.get_orders(uzum_shop_id, period)
-    rows = [r for r in (m.map_order(item) for item in raw) if r]
+    rows = [row for row in (m.map_order(item, sku_index) for item in raw) if row]
+
+    if raw and len(rows) < len(raw):
+        # SKU nomi topilmagan qatorlar — katalog bilan nomuvofiqlik
+        # belgisi. Jim o'tmaymiz (SPEC 9.6).
+        log.warning(
+            "Buyurtmalarning %s tasi SKU ga bog'lanmadi (%s dan): shop_id=%s",
+            len(raw) - len(rows),
+            len(raw),
+            shop_id,
+        )
+
     async with session_scope() as session:
         return await repo.upsert_orders(session, shop_id, rows)
 
@@ -157,8 +199,31 @@ async def _sync_orders(
 async def _sync_returns(
     shop_id: int, uzum_shop_id: str, client: UzumApiClient, period: DateRange
 ) -> int:
-    raw = await client.get_returns(uzum_shop_id, period)
-    rows = [row for item in raw for row in m.map_returns(item)]
+    """Qaytarishlar — ikki qadamda.
+
+    Ro'yxat so'rovi faqat sarlavhani beradi; SKU kesimidagi `returnItems`
+    har bir qaytarishning tafsilot so'rovida keladi. Bir qadamda
+    qilinganda jadval doim BO'SH qolardi (2026-08-07 da aniqlandi).
+    """
+    headers = await client.get_returns(uzum_shop_id, period)
+    if not headers:
+        return 0
+
+    rows: list[dict[str, object]] = []
+    for header in headers:
+        return_id = m.as_str(header.get("id"))
+        if not return_id:
+            continue
+        try:
+            detail = await client.get_return_detail(uzum_shop_id, return_id)
+        except Exception:
+            # Bittasi o'qilmasa qolganlari to'xtamasin (yuk xatlaridagidek)
+            log.warning(
+                "Qaytarish tarkibi olinmadi: shop=%s return=%s", shop_id, return_id
+            )
+            continue
+        rows.extend(m.map_returns({**header, **detail}))
+
     async with session_scope() as session:
         return await repo.upsert_returns(session, shop_id, rows)
 

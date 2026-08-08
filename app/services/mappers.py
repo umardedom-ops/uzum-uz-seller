@@ -180,15 +180,29 @@ def map_product_stock(raw: RawRecord) -> list[dict[str, Any]]:
 CANCELLED_STATUSES = {"CANCELED", "CANCELLED"}
 
 
-def map_order(raw: RawRecord) -> dict[str, Any] | None:
+def map_order(
+    raw: RawRecord, sku_by_full_title: dict[str, str] | None = None
+) -> dict[str, Any] | None:
     """`SellerOrderItemDto` → `orders` qatori.
 
-    ⚠️ Buyurtmada `skuId` yo'q — faqat `productId` va `skuTitle`.
-    Vaqtincha kalit sifatida `productId` ishlatiladi, SKU ga bog'lash
-    haqiqiy ma'lumotda aniqlanadi (docs/api-inventory.md §5-bis).
+    ⚠️ Buyurtmada `skuId` YO'Q. Bog'lanish kaliti — buyurtmadagi
+    `skuTitle`, u mahsulotdagi **`skuFullTitle`** ga teng
+    (masalan `AZIKO-КРОС-ТЕМНСИН-44` → skuId 763221). Shu jadval
+    `sku_by_full_title` orqali beriladi.
+
+    Ilgari bu yerda `productId` SKU sifatida ishlatilardi. U mahsulot
+    darajasidagi raqam (394566), SKU esa 704077/704078/... — ya'ni
+    `products` va `stock_snapshots` bilan HECH QACHON mos kelmasdi.
+    Natijada audit har bir SKU uchun "sotilgan = 0" deb hisoblardi va
+    soxta yo'qotish chiqarardi (2026-08-07 sverkasi).
+
+    Jadval berilmasa yoki nom topilmasa — qator yozilmaydi. Noto'g'ri
+    kalit bilan yozgandan ko'ra yozmagan afzal: birinchisi soxta
+    da'voga olib keladi.
     """
     order_id = as_str(raw.get("orderId")) or as_str(raw.get("id"))
-    sku = as_str(raw.get("productId"))
+    full_title = as_str(raw.get("skuTitle"))
+    sku = (sku_by_full_title or {}).get(full_title or "")
     if not order_id or not sku:
         return None
 
@@ -196,7 +210,9 @@ def map_order(raw: RawRecord) -> dict[str, Any] | None:
         "uzum_order_id": order_id,
         "sku": sku,
         "qty": as_int(raw.get("amount")),
-        "price": money(raw.get("sellerPrice")),
+        # `sellPrice` — Uzumdagi haqiqiy maydon nomi. `sellerPrice`
+        # hech qachon mavjud bo'lmagan, narx doim 0 tushardi.
+        "price": money(raw.get("sellPrice")),
         "status": as_str(raw.get("status")),
         "commission_amount": money(raw.get("commission")),
         "delivery_amount": money(raw.get("logisticDeliveryFee")),
@@ -226,6 +242,23 @@ def sold_qty(order_row: dict[str, Any]) -> int:
 RECEIVED_STATUSES = {"COMPLETED", "ACCEPTED", "FINISHED"}
 
 
+def sku_index_by_full_title(raw_products: list[RawRecord]) -> dict[str, str]:
+    """`skuFullTitle` → `skuId` jadvali (buyurtmalarni bog'lash uchun).
+
+    Buyurtmadagi `skuTitle` aynan shu `skuFullTitle` ga teng —
+    `map_order` dagi izohga qarang. Nom takrorlansa birinchisi qoladi;
+    `skuFullTitle` amalda noyob (220 SKU → 220 noyob nom).
+    """
+    index: dict[str, str] = {}
+    for product in raw_products:
+        for sku in product.get("skuList") or []:
+            full_title = as_str(sku.get("skuFullTitle"))
+            sku_id = as_str(sku.get("skuId"))
+            if full_title and sku_id:
+                index.setdefault(full_title, sku_id)
+    return index
+
+
 def map_returns(raw: RawRecord) -> list[dict[str, Any]]:
     """`SellerReturnDto` → `returns` qatorlari (har SKU uchun bitta)."""
     return_id = as_str(raw.get("id"))
@@ -247,8 +280,14 @@ def map_returns(raw: RawRecord) -> list[dict[str, Any]]:
                 "uzum_return_id": return_id,
                 "order_id": as_str(raw.get("externalNumber")),
                 "sku": sku,
-                # `packedAmount` — haqiqatda qabul qilingan miqdor
-                "qty": as_int(item.get("amount")),
+                # `packedAmount` — haqiqatda yig'ilgan miqdor, `amount` —
+                # rejadagi. Yakunlanmagan qaytarishda `packedAmount` yo'q
+                # bo'lishi mumkin, shunda rejadagiga tushamiz.
+                "qty": as_int(
+                    item.get("packedAmount")
+                    if item.get("packedAmount") is not None
+                    else item.get("amount")
+                ),
                 "reason": as_str(raw.get("type")),
                 "status": status,
                 "returned_at": iso_to_dt(raw.get("dateCreated")),

@@ -217,6 +217,22 @@ async def _run_and_show(
     )
 
     if not rows:
+        # "Yo'qotish topilmadi" va "tekshira olmadim" — ikki boshqa narsa.
+        # Manba bo'sh bo'lsa buni aytamiz, aks holda seller o'zini bekorga
+        # xotirjam his qiladi.
+        health = await audit_runner.data_health(shop_id)
+        if not health.is_complete:
+            await status.edit_text(
+                f"{header}\n\n"
+                + t(
+                    "audit_data_missing",
+                    lang,
+                    sources=", ".join(health.missing),
+                    audits=", ".join(health.blocked_audits),
+                )
+            )
+            return
+
         first, _ = await history_range(shop_id)
         hint = ""
         if first and period_from < first:
