@@ -43,10 +43,10 @@ def _sub_kb(rows_texts: list[list[str]], lang: str) -> ReplyKeyboardMarkup:
 
 
 def folder_analytics_kb(lang: str) -> ReplyKeyboardMarkup:
-    """📊 Hisobot va tahlil → Hisobotlar, Yunit-iqtisodiyot."""
+    """📊 Hisobot va tahlil → Hisobotlar, Top tovarlar, Yunit-iqtisodiyot."""
     return _sub_kb(
         [
-            [t("menu_reports", lang)],
+            [t("menu_reports", lang), t("menu_top", lang)],
             [t("menu_unit_econ", lang)],
         ],
         lang,

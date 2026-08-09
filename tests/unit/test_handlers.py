@@ -251,6 +251,44 @@ class TestFolderMenu:
             assert t("menu_home", "uz") in labels
 
 
+class TestTopReport:
+    """Top tovarlar — soni va foyda bo'yicha saralash to'g'ri ishlashi kerak."""
+
+    def _row(self, sku: str, qty: int, profit: int):
+        from decimal import Decimal
+
+        from app.services.economics import SkuEconomics
+
+        return SkuEconomics(
+            sku=sku,
+            title=sku,
+            qty_sold=qty,
+            revenue=Decimal(qty * 1000),
+            reported_profit=Decimal(profit),
+        )
+
+    def test_folder_has_top_button(self) -> None:
+        from app.bot.keyboards.menu import folder_analytics_kb
+        from app.bot.texts import t
+
+        labels = {b.text for row in folder_analytics_kb("uz").keyboard for b in row}
+        assert t("menu_top", "uz") in labels
+
+    def test_sort_by_qty(self) -> None:
+        from app.bot.handlers.top import _render
+
+        rows = [self._row("A", 1, 999), self._row("B", 5, 1)]
+        out = _render(rows, "uz", by="qty")
+        assert out.index("1. B") < out.index("2. A")  # ko'p sotilgan birinchi
+
+    def test_sort_by_profit(self) -> None:
+        from app.bot.handlers.top import _render
+
+        rows = [self._row("A", 1, 999), self._row("B", 5, 1)]
+        out = _render(rows, "uz", by="profit")
+        assert out.index("1. A") < out.index("2. B")  # ko'p foyda birinchi
+
+
 class TestApiKeyStep:
     """Kalit qabul qilish — xabar o'chirilishi shart (SPEC 9.3)."""
 

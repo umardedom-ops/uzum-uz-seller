@@ -135,6 +135,17 @@ TEXTS: dict[str, str] = {
     "menu_unit_econ": "🧮 Yunit-iqtisodiyot",
     "menu_alerts": "🔔 Bildirishnomalar",
     "menu_settings": "⚙️ Sozlamalar",
+    "menu_top": "🏆 Top tovarlar",
+    # --- Top tovarlar ---
+    "top_header_qty": "🏆 <b>Top tovarlar</b> · 30 kun · eng ko'p sotilgan",
+    "top_header_profit": "🏆 <b>Top tovarlar</b> · 30 kun · eng ko'p foyda",
+    "top_row": "{n}. {title} — {qty} dona · {revenue} so'm · foyda {profit}",
+    "top_by_qty": "Soni bo'yicha",
+    "top_by_profit": "Foyda bo'yicha",
+    "top_empty": (
+        "🏆 Hozircha sotuv yo'q — top tuzib bo'lmaydi.\n\n"
+        "Sotuv boshlangach yoki sinxronizatsiyadan keyin paydo bo'ladi."
+    ),
     # --- Papkalar (bosh menyu) ---
     "folder_analytics": "📊 Hisobot va tahlil",
     "folder_warehouse": "📦 Ombor va buyurtma",
