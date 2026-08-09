@@ -333,3 +333,32 @@ class TestTariffBanner:
 
         target.answer.assert_awaited_once()
         target.answer_photo.assert_not_awaited()
+
+
+class TestGuideVideo:
+    """API kalit yo'riqnomasidagi video qo'llanma.
+
+    Video Telegramning 50 MB chegarasiga sig'ishi shart, aks holda
+    umuman yuborilmaydi va seller buni bilmay qoladi.
+    """
+
+    def test_video_exists_and_fits_limit(self) -> None:
+        from app.bot.handlers.start import _ASSETS
+
+        video = _ASSETS / "api-guide.mp4"
+        assert video.exists(), "video qo'llanma yo'q"
+        size_mb = video.stat().st_size / 1024 / 1024
+        assert size_mb < 50, f"Telegram 50 MB dan kattasini yubormaydi ({size_mb:.1f} MB)"
+
+    async def test_missing_video_does_not_break_flow(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        """Video yo'q bo'lsa yozma yo'riqnoma bilan davom etadi."""
+        from app.bot.handlers import start as start_module
+
+        monkeypatch.setattr(start_module, "_ASSETS", tmp_path)  # bo'sh papka
+        target = AsyncMock()
+
+        await start_module._send_guide_video(target, "uz")
+
+        target.answer_video.assert_not_awaited()

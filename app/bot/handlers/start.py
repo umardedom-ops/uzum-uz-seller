@@ -257,13 +257,36 @@ async def on_phone_invalid(message: Message, state: FSMContext) -> None:
 # --- 6. Yo'riqnoma → API kalit so'rash ---
 @router.callback_query(F.data == "connect:how")
 async def on_how_to(cb: CallbackQuery, state: FSMContext) -> None:
+    """Yozma qadamlar + video qo'llanma.
+
+    Video matnni almashtirmaydi, to'ldiradi: seller telefonda video
+    ko'ra olmasligi yoki ovozi o'chiq bo'lishi mumkin. Video yo'q
+    bo'lsa ham oqim to'liq ishlaydi.
+    """
     lang = await _lang(state)
 
     await cb.message.edit_reply_markup(reply_markup=None)
     await cb.message.answer(t("instruction", lang))
+    await _send_guide_video(cb.message, lang)
     await state.set_state(Onboarding.entering_api_key)
     await cb.message.answer(t("ask_api_key", lang))
     await cb.answer()
+
+
+async def _send_guide_video(target: Message, lang: str) -> None:
+    """API kalit olish bo'yicha video qo'llanma."""
+    video = _ASSETS / "api-guide.mp4"
+    if not video.exists():
+        return
+    try:
+        await target.answer_video(
+            FSInputFile(video),
+            caption=t("guide_video_caption", lang),
+            supports_streaming=True,
+        )
+    except TelegramBadRequest:
+        # Video ketmasa yozma yo'riqnoma yetarli — oqim to'xtamaydi
+        log.exception("Video qo'llanma yuborilmadi")
 
 
 # --- 7. API kalit → tekshirish, do'konlarni topish, saqlash ---

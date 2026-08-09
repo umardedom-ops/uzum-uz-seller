@@ -68,6 +68,7 @@ TEXTS: dict[str, str] = {
         "o'zgartira olmaymiz. Kalitni istalgan payt kabinetdan bekor "
         "qilishingiz mumkin.</blockquote>"
     ),
+    "guide_video_caption": "🎬 Video qo'llanma — 45 soniya. Ovozsiz ham tushunarli.",
     "ask_api_key": (
         "🔑 <b>API kalitni yuboring</b>\n\n"
         "Kalitni yuborganingizdan keyin do'konlaringizni <b>o'zim topaman</b> — "
