@@ -1,10 +1,12 @@
-"""Bildirishnomalar va Sozlamalar bo'limlari.
+"""Papka navigatsiyasi + Bildirishnomalar va Sozlamalar bo'limlari.
 
-Ilgari ikkalasi «tayyorlanmoqda» deb javob berardi — menyuda tugma
-turgani holda hech narsa qilmasdi.
+Bosh menyu papkali (`keyboards/menu.py`): papka tugmasi bosilganda shu
+yerdagi handler tegishli quyi-klaviaturani yuboradi. «Bosh menyu» tugmasi
+ortga qaytaradi.
 
-Yo'qotilgan pul, FBS, Qoldiqlar, Yunit-iqtisodiyot va Hisobotlar
-o'z routerlariga ega.
+Yo'qotilgan pul, FBS, Qoldiqlar, Yunit-iqtisodiyot va Hisobotlar o'z
+routerlariga ega — quyi-klaviaturadan bosilganda o'shalar ishlaydi.
+Bildirishnomalar va Sozlamalar esa shu yerda.
 """
 from __future__ import annotations
 
@@ -17,6 +19,12 @@ from aiogram.types import (
     Message,
 )
 
+from app.bot.keyboards.menu import (
+    folder_analytics_kb,
+    folder_settings_kb,
+    folder_warehouse_kb,
+    main_menu_kb,
+)
 from app.bot.texts import DEFAULT_LANG, LANGS, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -26,6 +34,45 @@ from app.services.exports import find_user_shop
 
 log = get_logger(__name__)
 router = Router(name="menu")
+
+
+# ---------------------------------------------------------------------- #
+# 🗂 Papka navigatsiyasi
+# ---------------------------------------------------------------------- #
+
+
+@router.message(F.text.in_({t("folder_analytics", lg) for lg in LANGS}))
+async def on_folder_analytics(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await message.answer(
+        t("folder_analytics_header", lang), reply_markup=folder_analytics_kb(lang)
+    )
+
+
+@router.message(F.text.in_({t("folder_warehouse", lg) for lg in LANGS}))
+async def on_folder_warehouse(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await message.answer(
+        t("folder_warehouse_header", lang), reply_markup=folder_warehouse_kb(lang)
+    )
+
+
+@router.message(F.text.in_({t("folder_settings", lg) for lg in LANGS}))
+async def on_folder_settings(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await message.answer(
+        t("folder_settings_header", lang), reply_markup=folder_settings_kb(lang)
+    )
+
+
+@router.message(F.text.in_({t("menu_home", lg) for lg in LANGS}))
+async def on_home(message: Message, state: FSMContext) -> None:
+    """«Bosh menyu» — flagman + papkalarga qaytaradi."""
+    lang = await _lang(state)
+    is_admin = await billing.is_admin(message.from_user.id)
+    await message.answer(
+        t("main_menu", lang), reply_markup=main_menu_kb(lang, is_admin=is_admin)
+    )
 
 #: Xabarnoma turi → matn kaliti
 _ALERT_LABELS = {

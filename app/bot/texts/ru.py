@@ -127,6 +127,14 @@ TEXTS: dict[str, str] = {
     "menu_unit_econ": "🧮 Юнит-экономика",
     "menu_alerts": "🔔 Уведомления",
     "menu_settings": "⚙️ Настройки",
+    # --- Папки (главное меню) ---
+    "folder_analytics": "📊 Отчёты и аналитика",
+    "folder_warehouse": "📦 Склад и заказы",
+    "folder_settings": "⚙️ Настройки и уведомления",
+    "menu_home": "🏠 Главное меню",
+    "folder_analytics_header": "📊 <b>Отчёты и аналитика</b>\n\nВыберите:",
+    "folder_warehouse_header": "📦 <b>Склад и заказы</b>\n\nВыберите:",
+    "folder_settings_header": "⚙️ <b>Настройки и уведомления</b>\n\nВыберите:",
     # --- Выбор периода ---
     "choose_period": "📅 <b>За какой период проверяем?</b>",
     "period_today": "Сегодня",

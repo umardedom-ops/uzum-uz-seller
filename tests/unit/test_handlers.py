@@ -198,6 +198,59 @@ class TestAdminMenu:
         assert kb.keyboard[0][0].text.endswith("Yo'qotilgan pul")
 
 
+class TestFolderMenu:
+    """Bosh menyu papkali — 3 papka + flagman, har papka ortga qaytadi."""
+
+    def test_main_menu_has_folders(self) -> None:
+        from app.bot.keyboards.menu import main_menu_kb
+        from app.bot.texts import t
+
+        labels = [b.text for row in main_menu_kb("uz").keyboard for b in row]
+        # Flagman to'g'ridan-to'g'ri, papkalar alohida
+        assert labels[0] == t("menu_lost_money", "uz")
+        assert t("folder_analytics", "uz") in labels
+        assert t("folder_warehouse", "uz") in labels
+        assert t("folder_settings", "uz") in labels
+
+    def test_folder_names_differ_from_sections(self) -> None:
+        """Papka matni bo'lim matni bilan bir xil bo'lsa, bo'lim handleri
+        chaqirilib qolardi — farqli bo'lishi shart."""
+        from app.bot.texts import t
+
+        folders = {
+            t("folder_analytics", "uz"),
+            t("folder_warehouse", "uz"),
+            t("folder_settings", "uz"),
+        }
+        sections = {
+            t("menu_reports", "uz"),
+            t("menu_unit_econ", "uz"),
+            t("menu_stock", "uz"),
+            t("menu_fbs", "uz"),
+            t("menu_settings", "uz"),
+            t("menu_alerts", "uz"),
+        }
+        assert folders.isdisjoint(sections)
+
+    def test_subfolders_contain_sections_and_back(self) -> None:
+        from app.bot.keyboards.menu import (
+            folder_analytics_kb,
+            folder_settings_kb,
+            folder_warehouse_kb,
+        )
+        from app.bot.texts import t
+
+        for kb, expected in (
+            (folder_analytics_kb("uz"), {t("menu_reports", "uz"), t("menu_unit_econ", "uz")}),
+            (folder_warehouse_kb("uz"), {t("menu_stock", "uz"), t("menu_fbs", "uz")}),
+            (folder_settings_kb("uz"), {t("menu_settings", "uz"), t("menu_alerts", "uz")}),
+        ):
+            labels = {b.text for row in kb.keyboard for b in row}
+            assert expected <= labels
+            # Har papkada ortga tugmasi bor
+            assert t("menu_home", "uz") in labels
+
+
 class TestApiKeyStep:
     """Kalit qabul qilish — xabar o'chirilishi shart (SPEC 9.3)."""
 

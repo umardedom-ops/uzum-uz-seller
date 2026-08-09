@@ -135,6 +135,16 @@ TEXTS: dict[str, str] = {
     "menu_unit_econ": "🧮 Yunit-iqtisodiyot",
     "menu_alerts": "🔔 Bildirishnomalar",
     "menu_settings": "⚙️ Sozlamalar",
+    # --- Papkalar (bosh menyu) ---
+    "folder_analytics": "📊 Hisobot va tahlil",
+    "folder_warehouse": "📦 Ombor va buyurtma",
+    "folder_settings": "⚙️ Sozlama va bildirishnoma",
+    "menu_home": "🏠 Bosh menyu",
+    "folder_analytics_header": "📊 <b>Hisobot va tahlil</b>\n\nQuyidan tanlang:",
+    "folder_warehouse_header": "📦 <b>Ombor va buyurtma</b>\n\nQuyidan tanlang:",
+    "folder_settings_header": (
+        "⚙️ <b>Sozlama va bildirishnoma</b>\n\nQuyidan tanlang:"
+    ),
     # --- Davr tanlash ---
     "choose_period": "📅 <b>Qaysi davr uchun tekshiramiz?</b>",
     "period_today": "Bugun",

@@ -33,6 +33,7 @@ bilan ishlaydi.
 | Serverda 24/7 (Docker + PostgreSQL) | ✅ ishlab turibdi |
 | HTTPS domen + webhook | ✅ `uzumbot.8xspuf.easypanel.host` |
 | 🔔 Bildirishnomalar · ⚙️ Sozlamalar | ✅ **yozildi** (`handlers/menu.py`, 2026-08-09) |
+| **Papkali bosh menyu** | ✅ flagman + 3 papka (`keyboards/menu.py`, 2026-08-09) |
 | **Qoldiq o'zgartirish (YOZISH)** | 🧪 **demo** — oqim tayyor, jonli o'chiq (pastga qarang) |
 | **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
 
