@@ -246,6 +246,12 @@ TEXTS: dict[str, str] = {
     # --- FBS buyurtmalar ---
     "fbs_loading": "⏳ Buyurtmalarni olyapman...",
     "fbs_header": "🏷 <b>Yig'ilishi kerak: {count} ta buyurtma</b>",
+    "fbs_unavailable": (
+        "⚠️ <b>Uzum FBS ma'lumotini bermadi.</b>\n\n"
+        "Bu «buyurtma yo'q» degani emas — so'rov javobsiz qoldi. "
+        "Bir necha daqiqadan keyin qayta urinib ko'ring.\n\n"
+        "Takrorlansa, kabinetda API kalitingiz amal qilishini tekshiring."
+    ),
     "fbs_empty": (
         "✅ Yig'ilishi kerak bo'lgan buyurtma yo'q.\n\n"
         "Yangi buyurtma kelganda xabar beraman."

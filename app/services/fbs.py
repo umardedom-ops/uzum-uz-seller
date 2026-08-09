@@ -77,8 +77,23 @@ async def _client_for(shop_id: int) -> tuple[UzumHTTP, UzumApiClient, str] | Non
     return http, client, uzum_shop_id
 
 
+class FbsUnavailableError(RuntimeError):
+    """Uzum FBS ma'lumotini bermadi.
+
+    ❗ "Buyurtma yo'q" va "so'rov yiqildi" — ikki boshqa narsa. Ilgari
+    ikkalasi ham bo'sh ro'yxat qaytarardi va seller yig'ilishi kerak
+    buyurtmalarni ko'rmay qolardi, xato esa faqat logda turardi
+    (2026-08-09 da aynan shunday bo'lgan: sahifa hajmi 100 edi, Uzum
+    esa FBS'da 50 dan ko'pini qabul qilmaydi).
+    """
+
+
 async def list_pending_orders(shop_id: int, days: int = 14) -> list[FbsOrder]:
-    """Yig'ilishi kerak bo'lgan FBS/DBS buyurtmalar."""
+    """Yig'ilishi kerak bo'lgan FBS/DBS buyurtmalar.
+
+    Uzum javob bermasa `FbsUnavailableError` ko'tariladi — chaqiruvchi
+    "buyurtma yo'q" deb ko'rsatmasligi uchun.
+    """
     built = await _client_for(shop_id)
     if built is None:
         return []
@@ -94,9 +109,9 @@ async def list_pending_orders(shop_id: int, days: int = 14) -> list[FbsOrder]:
                 uzum_shop_id, status=status, period=period
             )
             orders.extend(_map_order(item) for item in raw)
-    except Exception:
+    except Exception as exc:
         log.exception("FBS buyurtmalarni olishda xato: shop_id=%s", shop_id)
-        return []
+        raise FbsUnavailableError(str(exc)) from exc
     finally:
         await http.aclose()
 

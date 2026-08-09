@@ -37,7 +37,13 @@ async def on_fbs(message: Message, state: FSMContext) -> None:
         return
 
     status = await message.answer(t("fbs_loading", lang))
-    orders = await fbs.list_pending_orders(shop.id)
+    try:
+        orders = await fbs.list_pending_orders(shop.id)
+    except fbs.FbsUnavailableError:
+        # "Buyurtma yo'q" demaymiz — bu yolg'on tinchlik bo'lardi va
+        # seller yig'ilmagan buyurtmalarni o'tkazib yuborardi.
+        await status.edit_text(t("fbs_unavailable", lang))
+        return
 
     if not orders:
         await status.edit_text(t("fbs_empty", lang))

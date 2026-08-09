@@ -76,3 +76,57 @@ class TestToMs:
         d = date(2026, 1, 1)
         delta = to_ms(d, end_of_day=True) - to_ms(d)
         assert delta < 24 * 3600 * 1000
+
+
+class TestFbsPageSize:
+    """FBS endpointi 50 dan katta sahifani qabul qilmaydi.
+
+    2026-08-09 da jonli aniqlandi: `size=50` → 200, `size=51` va undan
+    yuqorisi → `400 Illegal argument`. Standart hajm 100 bo'lgani uchun
+    HAR BIR FBS so'rovi yiqilardi va bo'lim butunlay ishlamasdi.
+    """
+
+    async def test_uses_fifty_not_default(self) -> None:
+        from app.uzum.api_client import DEFAULT_PAGE_SIZE, FBS_PAGE_SIZE
+
+        assert FBS_PAGE_SIZE == 50
+        assert DEFAULT_PAGE_SIZE > FBS_PAGE_SIZE  # aks holda test ma'nosiz
+
+    async def test_fbs_request_sends_size_50(self) -> None:
+        """So'rovda aynan 50 ketishini tekshiramiz — konstanta yetarli emas."""
+        sent: list[dict] = []
+
+        class FakeHTTP:
+            async def get(self, path, *, rate_key, params=None, headers=None, **kw):
+                sent.append(params or {})
+                return {"payload": []}
+
+        from app.uzum.api_client import UzumApiClient
+        from app.uzum.models import AuthType, SessionCredentials
+
+        client = UzumApiClient(
+            FakeHTTP(), SessionCredentials(auth_type=AuthType.API, secret="x")
+        )
+        await client.get_fbs_orders("7973", status="CREATED")
+
+        assert sent, "so'rov umuman yuborilmadi"
+        assert sent[0]["size"] == 50
+
+    async def test_other_endpoints_keep_100(self) -> None:
+        """Mahsulot endpointi 100 ni qabul qiladi — uni pasaytirmaymiz."""
+        sent: list[dict] = []
+
+        class FakeHTTP:
+            async def get(self, path, *, rate_key, params=None, headers=None, **kw):
+                sent.append(params or {})
+                return {"productList": []}
+
+        from app.uzum.api_client import UzumApiClient
+        from app.uzum.models import AuthType, SessionCredentials
+
+        client = UzumApiClient(
+            FakeHTTP(), SessionCredentials(auth_type=AuthType.API, secret="x")
+        )
+        await client.get_products("7973")
+
+        assert sent[0]["size"] == 100

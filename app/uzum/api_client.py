@@ -21,6 +21,15 @@ log = get_logger(__name__)
 DEFAULT_PAGE_SIZE = 100
 MAX_PAGES = 500  # cheksiz aylanishdan himoya
 
+# ❗ `/v2/fbs/*` endpointlari 50 dan katta sahifani QABUL QILMAYDI:
+# `400 Illegal argument` qaytaradi. 2026-08-09 da jonli tekshirilgan —
+# 50 ishlaydi, 51 dan boshlab xato. Boshqa endpointlar 100 ni oladi.
+#
+# Bu xato FBS bo'limini butunlay ishlamas holga keltirgan edi: har bir
+# so'rov yiqilardi, `list_pending_orders` esa xatoni yutib bo'sh ro'yxat
+# qaytarardi — seller "buyurtma yo'q" deb ko'rardi.
+FBS_PAGE_SIZE = 50
+
 
 def to_ms(d: date, *, end_of_day: bool = False) -> int:
     """Sanani unix epoch millisekundga aylantiradi (API shuni kutadi)."""
@@ -95,12 +104,14 @@ class UzumApiClient(AbstractUzumClient):
         keys: tuple[str, ...],
         params: dict[str, Any] | None = None,
         page: PageParams | None = None,
+        page_size: int = DEFAULT_PAGE_SIZE,
     ) -> list[RawRecord]:
         """Sahifalarni oxirigacha aylanib, hamma yozuvni yig'adi.
 
         `page` berilsa — faqat o'sha bitta sahifa qaytadi (nozik nazorat uchun).
+        `page_size` — endpoint chegarasi turlicha (masalan FBS'da 50).
         """
-        size = page.limit if page else DEFAULT_PAGE_SIZE
+        size = page.limit if page else page_size
         start = (page.offset // size) if (page and size) else 0
 
         items: list[RawRecord] = []
@@ -308,6 +319,7 @@ class UzumApiClient(AbstractUzumClient):
             keys=("orders", "sellerOrders", "content"),
             params=params,
             page=page,
+            page_size=FBS_PAGE_SIZE,
         )
 
     async def get_fbs_orders_count(
