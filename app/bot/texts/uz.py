@@ -323,8 +323,16 @@ TEXTS: dict[str, str] = {
     ),
     "fbs_more": "...va yana {rest} ta buyurtma",
     "btn_label_for": "🏷 №{order} yorlig'i",
+    "btn_all_labels": "🏷 Barcha yorliqlar ({count} ta) — bitta PDF",
     "fbs_preparing": "Yorliq tayyorlanyapti...",
     "fbs_label_caption": "🏷 №{order} buyurtma yorlig'i — chop etishga tayyor",
+    "fbs_all_labels_caption": (
+        "🏷 Barcha buyurtma yorlig'i bitta PDF'da — chop eting va yig'ing."
+    ),
+    "fbs_all_labels_failed": (
+        "⚠️ Yorliqlarni yig'a olmadim. Buyurtmalarni qayta oching yoki "
+        "yorliqlarni bittalab yuklab ko'ring."
+    ),
     "fbs_label_failed": (
         "❌ №{order} yorlig'ini olib bo'lmadi.\n\n"
         "Buyurtma holati o'zgargan bo'lishi mumkin. Birozdan so'ng urinib ko'ring."

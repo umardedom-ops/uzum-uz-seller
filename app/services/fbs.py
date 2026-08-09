@@ -6,6 +6,7 @@ sotadi — bizda ham bo'ladi, va faqat GET orqali.
 """
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -203,6 +204,84 @@ async def download_invoice_document(
     name = "qabul-akti" if closing else "taminlash-akti"
     path = directory / f"{name}-{invoice_id}{_extension(content_type)}"
     path.write_bytes(content)
+    return path
+
+
+def _merge_pdfs(parts: list[bytes]) -> bytes | None:
+    """Bir nechta PDF baytini bitta PDF ga birlashtiradi.
+
+    Buzuq bo'lak o'tkazib yuboriladi (jim yutmaymiz — logga yozamiz).
+    Hech bo'lak qo'shilmasa None qaytadi.
+    """
+    from pypdf import PdfReader, PdfWriter
+
+    writer = PdfWriter()
+    added = 0
+    for part in parts:
+        try:
+            reader = PdfReader(io.BytesIO(part))
+            for page in reader.pages:
+                writer.add_page(page)
+            added += 1
+        except Exception:
+            log.exception("Yorliq PDF birlashtirishda buzuq bo'lak o'tkazildi")
+
+    if added == 0:
+        return None
+
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+async def download_all_labels(
+    shop_id: int, days: int = 14, out_dir: Path | None = None
+) -> Path | None:
+    """Yig'ilishi kerak barcha buyurtma yorlig'ini BITTA PDF ga yig'adi.
+
+    Raqobatchining "bitta tugma bilan" fichasi — faqat GET (yorliqlar
+    tayyor, biz yaratmaymiz, faqat olamiz va birlashtiramiz).
+
+    Buyurtma yo'q bo'lsa None. Uzum yorliq bermasa o'sha buyurtma
+    o'tkazib yuboriladi; hech biri kelmasa None.
+    """
+    orders = await list_pending_orders(shop_id, days=days)
+    if not orders:
+        return None
+
+    built = await _client_for(shop_id)
+    if built is None:
+        return None
+    http, client, uzum_shop_id = built
+
+    pdf_parts: list[bytes] = []
+    try:
+        for order in orders:
+            try:
+                content, content_type = await client.get_order_label(
+                    uzum_shop_id, order.order_id
+                )
+            except Exception:
+                log.exception(
+                    "Yorliq yuklanmadi (o'tkazildi): shop=%s order=%s",
+                    shop_id,
+                    order.order_id,
+                )
+                continue
+            if content and "pdf" in (content_type or "").lower():
+                pdf_parts.append(content)
+
+    finally:
+        await http.aclose()
+
+    merged = _merge_pdfs(pdf_parts)
+    if merged is None:
+        return None
+
+    directory = out_dir or Path("generated")
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"yorliqlar-{shop_id}.pdf"
+    path.write_bytes(merged)
     return path
 
 

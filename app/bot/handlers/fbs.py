@@ -61,8 +61,19 @@ async def on_fbs(message: Message, state: FSMContext) -> None:
 
 
 def _orders_kb(orders: list[fbs.FbsOrder], lang: str) -> InlineKeyboardMarkup:
-    """Har buyurtma uchun yorliq tugmasi."""
-    rows = [
+    """Har buyurtma uchun yorliq tugmasi + «Barcha yorliqlar bitta PDF»."""
+    rows: list[list[InlineKeyboardButton]] = []
+    if len(orders) > 1:
+        # Bittadan ko'p bo'lsagina — bir bosishda hammasi (raqobatchi fichasi)
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=t("btn_all_labels", lang, count=len(orders)),
+                    callback_data="fbs:all",
+                )
+            ]
+        )
+    rows += [
         [
             InlineKeyboardButton(
                 text=t("btn_label_for", lang, order=order.order_id),
@@ -97,6 +108,36 @@ async def on_label(cb: CallbackQuery, state: FSMContext) -> None:
 
     await cb.message.answer_document(
         FSInputFile(path), caption=t("fbs_label_caption", lang, order=order_id)
+    )
+
+
+@router.callback_query(F.data == "fbs:all")
+async def on_all_labels(cb: CallbackQuery, state: FSMContext) -> None:
+    """Barcha buyurtma yorlig'ini bitta PDF qilib yuboradi."""
+    lang = await _lang(state)
+
+    data = await state.get_data()
+    shop_id = data.get("shop_id")
+    if shop_id is None:
+        shop = await find_user_shop(cb.from_user.id)
+        if shop is None:
+            await cb.answer(t("no_shop", lang), show_alert=True)
+            return
+        shop_id = shop.id
+
+    await cb.answer(t("fbs_preparing", lang))
+    try:
+        path = await fbs.download_all_labels(shop_id)
+    except fbs.FbsUnavailableError:
+        await cb.message.answer(t("fbs_unavailable", lang))
+        return
+
+    if path is None:
+        await cb.message.answer(t("fbs_all_labels_failed", lang))
+        return
+
+    await cb.message.answer_document(
+        FSInputFile(path), caption=t("fbs_all_labels_caption", lang)
     )
 
 

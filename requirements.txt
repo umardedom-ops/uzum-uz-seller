@@ -18,6 +18,7 @@ httpx>=0.27
 openpyxl>=3.1            # Excel hisobot
 python-docx>=1.1         # Pretenziya
 reportlab>=4.0           # PDF hisobot
+pypdf>=4.0               # yorliqlarni bitta PDF'ga birlashtirish
 # DIQQAT: PDF'da kirill matn uchun TrueType shrift kerak.
 # Linux serverda: apt install fonts-dejavu-core
 

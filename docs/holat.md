@@ -35,6 +35,7 @@ bilan ishlaydi.
 | 🔔 Bildirishnomalar · ⚙️ Sozlamalar | ✅ **yozildi** (`handlers/menu.py`, 2026-08-09) |
 | **Papkali bosh menyu** | ✅ flagman + 3 papka (`keyboards/menu.py`, 2026-08-09) |
 | **Top tovarlar** hisoboti | ✅ soni/foyda bo'yicha (`handlers/top.py`, 2026-08-09) |
+| **Barcha yorliqlar bitta PDF** | ✅ FBS'da (`services/fbs.py`, `pypdf`, 2026-08-09) |
 | **Qoldiq o'zgartirish (YOZISH)** | 🧪 **demo** — oqim tayyor, jonli o'chiq (pastga qarang) |
 | **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
 
