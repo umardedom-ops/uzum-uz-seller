@@ -122,17 +122,54 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
     # "Boshlash" tugmasisiz. Tanlash majburiy: tanlanmaguncha oqim
     # davom etmaydi.
     await state.set_state(Onboarding.choosing_plan)
-    await cb.message.answer(
-        t(
-            "choose_plan",
-            lang,
-            trial_days=s.trial_days,
-            price_basic=_money(s.price_basic),
-            price_pro=_money(s.price_pro),
-        ),
-        reply_markup=onboarding_plans_kb(lang),
-    )
+    await send_plans(cb.message, lang)
     await cb.answer()
+
+
+#: Tariflar banneri. Bo'lsa — rasm bilan, bo'lmasa matn bilan chiqadi.
+TARIFF_BANNER = Path(__file__).resolve().parents[1] / "assets" / "tariffs.png"
+
+#: Telegram rasm sarlavhasi shu uzunlikdan oshmasligi kerak
+_CAPTION_LIMIT = 1024
+
+
+async def send_with_banner(target: Message, text: str, kb: object) -> None:
+    """Matnni tariflar banneri bilan yuboradi.
+
+    Rasm topilmasa yoki Telegram uni rad etsa — oqim to'xtamaydi, faqat
+    matn ketadi. Banner yo'qligi sababli seller tarif tanlay olmay
+    qolmasligi kerak.
+
+    Uzun matn rasm sarlavhasiga sig'maydi ({limit} belgi), shunday
+    holatda ham matnga tushamiz.
+    """
+    if TARIFF_BANNER.exists() and len(text) <= _CAPTION_LIMIT:
+        try:
+            await target.answer_photo(
+                FSInputFile(TARIFF_BANNER), caption=text, reply_markup=kb
+            )
+            return
+        except TelegramBadRequest:
+            log.exception("Tariflar banneri yuborilmadi — matn bilan davom etamiz")
+
+    await target.answer(text, reply_markup=kb)
+
+
+def plans_text(lang: str) -> str:
+    """Onboardingdagi tarif matni (narx tugmalarda bo'lgani uchun qisqa)."""
+    s = get_settings()
+    return t(
+        "choose_plan",
+        lang,
+        trial_days=s.trial_days,
+        price_basic=_money(s.price_basic),
+        price_pro=_money(s.price_pro),
+    )
+
+
+async def send_plans(target: Message, lang: str) -> None:
+    """Onboardingdagi tarif ekrani: banner + matn + 3 ta tugma."""
+    await send_with_banner(target, plans_text(lang), onboarding_plans_kb(lang))
 
 
 async def show_oferta(cb: CallbackQuery, state: FSMContext) -> None:

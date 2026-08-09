@@ -115,6 +115,9 @@ TEXTS: dict[str, str] = {
         "👑 Вы <b>администратор</b> — внизу кнопка «Админ».\n\n"
         "Что делаем?"
     ),
+    "report_today": "Сегодня",
+    "report_yesterday": "Вчера",
+    "report_week": "7 дней",
     "menu_admin": "👑 Админ",
     "menu_lost_money": "💰 Потерянные деньги",
     "menu_reports": "📊 Отчёты",

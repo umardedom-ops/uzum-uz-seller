@@ -123,6 +123,9 @@ TEXTS: dict[str, str] = {
         "👑 Siz <b>administrator</b>siz — pastda «Admin» tugmasi bor.\n\n"
         "Nima qilamiz?"
     ),
+    "report_today": "Bugun",
+    "report_yesterday": "Kecha",
+    "report_week": "7 kun",
     "menu_admin": "👑 Admin",
     "menu_lost_money": "💰 Yo'qotilgan pul",
     "menu_reports": "📊 Hisobotlar",

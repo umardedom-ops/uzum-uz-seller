@@ -14,9 +14,9 @@ from app.bot.texts import DEFAULT_LANG, LANGS, t
 router = Router(name="menu")
 
 # Menyu tugmalari — har ikkala tilda ham tanilsin.
-# `menu_lost_money` va `menu_fbs` bu yerda YO'Q: ular o'z routerlariga ega.
+# `menu_lost_money`, `menu_fbs`, `menu_stock`, `menu_unit_econ` va
+# `menu_reports` bu yerda YO'Q: ular o'z routerlariga ega.
 _MENU_KEYS = (
-    "menu_reports",
     "menu_alerts",
     "menu_settings",
 )

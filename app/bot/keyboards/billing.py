@@ -27,6 +27,9 @@ def onboarding_plans_kb(lang: str) -> InlineKeyboardMarkup:
     "pul so'rayapti" degan taassurot bilan chiqib ketmasin. Lekin
     tanlash **majburiy** — tanlamaguncha menyu ochilmaydi.
     """
+    # Tartib bannerdagi kartochkalar bilan BIR XIL: Bepul · Pro · Basic.
+    # Rasmda Pro o'rtada va ajratib ko'rsatilgan; tugmalar boshqa
+    # tartibda bo'lsa seller ko'zi bilan qidirib qoladi.
     s = get_settings()
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -38,14 +41,14 @@ def onboarding_plans_kb(lang: str) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton(
-                    text=t("btn_plan_basic", lang, price=_money(s.price_basic)),
-                    callback_data=f"onboarding:plan:{Plan.BASIC.value}",
+                    text=t("btn_plan_pro", lang, price=_money(s.price_pro)),
+                    callback_data=f"onboarding:plan:{Plan.PRO.value}",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text=t("btn_plan_pro", lang, price=_money(s.price_pro)),
-                    callback_data=f"onboarding:plan:{Plan.PRO.value}",
+                    text=t("btn_plan_basic", lang, price=_money(s.price_basic)),
+                    callback_data=f"onboarding:plan:{Plan.BASIC.value}",
                 )
             ],
         ]

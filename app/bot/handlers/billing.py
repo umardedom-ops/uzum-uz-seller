@@ -110,12 +110,13 @@ async def show_plans(event: Message | CallbackQuery, state: FSMContext) -> None:
             "plan_current", lang, plan=_plan_name(access.plan, lang), days=access.days_left
         )
 
+    from app.bot.handlers.start import send_with_banner
+
+    target = event.message if isinstance(event, CallbackQuery) else event
     if isinstance(event, CallbackQuery):
         await event.answer()
-        if event.message is not None:
-            await event.message.answer(text, reply_markup=plans_kb(lang))
-    else:
-        await event.answer(text, reply_markup=plans_kb(lang))
+    if target is not None:
+        await send_with_banner(target, text, plans_kb(lang))
 
 
 @router.callback_query(F.data.startswith("billing:buy:"))

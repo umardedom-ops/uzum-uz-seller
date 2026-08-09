@@ -19,6 +19,7 @@ from app.bot.handlers import (
     fbs,
     menu,
     money,
+    reports,
     start,
     stock,
 )
@@ -45,6 +46,7 @@ def build_dispatcher() -> Dispatcher:
     dp.include_router(billing.router)
     # Aniq filtrli routerlar `menu` dan OLDIN turadi
     dp.include_router(money.router)
+    dp.include_router(reports.router)
     dp.include_router(fbs.router)
     dp.include_router(stock.router)
     dp.include_router(economics.router)
