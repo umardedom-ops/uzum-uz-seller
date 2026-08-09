@@ -39,6 +39,8 @@ def make_callback(data: str) -> MagicMock:
     cb.message.edit_text = AsyncMock()
     cb.message.answer = AsyncMock()
     cb.message.edit_reply_markup = AsyncMock()
+    # Tarif ekrani banner bilan chiqadi — bu ham kutilishi kerak
+    cb.message.answer_photo = AsyncMock()
     return cb
 
 
@@ -46,6 +48,21 @@ def sent_text(mock: AsyncMock) -> str:
     """Chaqiruvdan yuborilgan matnni oladi."""
     args, kwargs = mock.call_args
     return kwargs.get("text") or (args[0] if args else "")
+
+
+def plans_screen(cb: MagicMock) -> tuple[str, object]:
+    """Tarif ekranining matni va klaviaturasi.
+
+    Banner bo'lsa `answer_photo` (matn — `caption`), bo'lmasa `answer`.
+    Test ikkalasida ham ishlashi kerak: rasm loyihada bo'lishi ham,
+    bo'lmasligi ham mumkin.
+    """
+    if cb.message.answer_photo.await_args is not None:
+        kwargs = cb.message.answer_photo.await_args.kwargs
+        return kwargs["caption"], kwargs["reply_markup"]
+    kwargs = cb.message.answer.await_args.kwargs
+    args = cb.message.answer.await_args.args
+    return (kwargs.get("text") or args[0]), kwargs["reply_markup"]
 
 
 class TestLanguageChoice:
@@ -75,10 +92,9 @@ class TestLanguageChoice:
         cb = make_callback("lang:uz")
         await start.on_lang(cb, state)
 
-        plans_text = sent_text(cb.message.answer)
-        assert "3 kun" in plans_text
+        text, kb = plans_screen(cb)
+        assert "3 kun" in text
 
-        kb = cb.message.answer.await_args.kwargs["reply_markup"]
         labels = " ".join(b.text for row in kb.inline_keyboard for b in row)
         assert "149 000" in labels
         assert "299 000" in labels
@@ -103,11 +119,10 @@ class TestPlanStep:
         cb = make_callback("lang:uz")
         await start.on_lang(cb, state)
 
-        text = sent_text(cb.message.answer)
+        text, kb = plans_screen(cb)
         assert "Tarifni tanlang" in text
         assert "{" not in text
 
-        kb = cb.message.answer.await_args.kwargs["reply_markup"]
         labels = [b.text for row in kb.inline_keyboard for b in row]
         assert len(labels) == 3
         assert any("Bepul" in x for x in labels)
@@ -283,3 +298,38 @@ class TestApiKeyStep:
         # To'lov ekrani ko'rsatilgani uchun menyu hali chiqmaydi
         texts = [c.args[0] for c in msg.answer.await_args_list if c.args]
         assert not any("Asosiy menyu" in x for x in texts)
+
+
+class TestTariffBanner:
+    """Banner rasmi tarif ekranida ko'rinishi.
+
+    2026-08-09: fayl `tariffs.png.jpg` nomi bilan saqlangan edi, kod esa
+    faqat `tariffs.png` ni qidirardi — banner jimgina ko'rinmay qolgan.
+    Shuning uchun bir nechta kengaytma qidiriladi.
+    """
+
+    def test_banner_exists_in_repo(self) -> None:
+        from app.bot.handlers.start import tariff_banner
+
+        assert tariff_banner() is not None, "banner fayli yo'q — tarif ekrani rasmsiz"
+
+    def test_caption_fits_telegram_limit(self) -> None:
+        """Matn 1024 belgidan oshsa rasm sarlavhasiga sig'maydi."""
+        from app.bot.handlers.start import _CAPTION_LIMIT, plans_text
+
+        for lang in ("uz", "ru"):
+            assert len(plans_text(lang)) <= _CAPTION_LIMIT
+
+    async def test_falls_back_to_text_when_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Banner yo'q bo'lsa oqim to'xtamaydi — matn yuboriladi."""
+        from app.bot.handlers import start as start_module
+
+        monkeypatch.setattr(start_module, "tariff_banner", lambda: None)
+        target = AsyncMock()
+
+        await start_module.send_with_banner(target, "matn", None)
+
+        target.answer.assert_awaited_once()
+        target.answer_photo.assert_not_awaited()

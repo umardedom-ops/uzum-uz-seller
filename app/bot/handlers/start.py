@@ -126,11 +126,24 @@ async def on_lang(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.answer()
 
 
-#: Tariflar banneri. Bo'lsa — rasm bilan, bo'lmasa matn bilan chiqadi.
-TARIFF_BANNER = Path(__file__).resolve().parents[1] / "assets" / "tariffs.png"
+#: Tariflar banneri qidiriladigan nomlar. Bir nechta kengaytma:
+#: dizayner faylni `.jpg` yoki `.png` qilib berishi mumkin va shu sabab
+#: banner ko'rinmay qolmasin (2026-08-09 da aynan shunday bo'ldi —
+#: fayl `tariffs.png.jpg` nomi bilan saqlangan edi).
+_ASSETS = Path(__file__).resolve().parents[1] / "assets"
+_BANNER_NAMES = ("tariffs.jpg", "tariffs.jpeg", "tariffs.png", "tariffs.webp")
 
 #: Telegram rasm sarlavhasi shu uzunlikdan oshmasligi kerak
 _CAPTION_LIMIT = 1024
+
+
+def tariff_banner() -> Path | None:
+    """Mavjud banner faylini qaytaradi, topilmasa `None`."""
+    for name in _BANNER_NAMES:
+        candidate = _ASSETS / name
+        if candidate.exists():
+            return candidate
+    return None
 
 
 async def send_with_banner(target: Message, text: str, kb: object) -> None:
@@ -143,10 +156,11 @@ async def send_with_banner(target: Message, text: str, kb: object) -> None:
     Uzun matn rasm sarlavhasiga sig'maydi ({limit} belgi), shunday
     holatda ham matnga tushamiz.
     """
-    if TARIFF_BANNER.exists() and len(text) <= _CAPTION_LIMIT:
+    banner = tariff_banner()
+    if banner is not None and len(text) <= _CAPTION_LIMIT:
         try:
             await target.answer_photo(
-                FSInputFile(TARIFF_BANNER), caption=text, reply_markup=kb
+                FSInputFile(banner), caption=text, reply_markup=kb
             )
             return
         except TelegramBadRequest:
