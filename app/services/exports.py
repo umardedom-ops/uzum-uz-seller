@@ -26,18 +26,70 @@ from app.docs.stock import StockRow
 
 
 async def find_user_shop(telegram_id: int) -> Shop | None:
-    """Foydalanuvchining birinchi faol do'koni.
+    """Foydalanuvchining joriy do'koni.
 
-    TODO: bir nechta do'kon bo'lsa tanlash ekrani kerak (tarifga bog'liq).
+    Foydalanuvchi do'kon tanlagan bo'lsa (`User.active_shop_id`) va u hali
+    faol va o'ziniki bo'lsa — o'sha qaytadi. Aks holda birinchi faol do'kon.
+    Shu tufayli barcha handlerlar tanlangan do'kon bilan avtomatik ishlaydi.
     """
     async with session_scope() as session:
+        user = await session.scalar(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        if user is None:
+            return None
+
+        if user.active_shop_id is not None:
+            chosen = await session.scalar(
+                select(Shop).where(
+                    Shop.id == user.active_shop_id,
+                    Shop.user_id == user.id,
+                    Shop.is_active.is_(True),
+                )
+            )
+            if chosen is not None:
+                return chosen
+
         return await session.scalar(
             select(Shop)
-            .join(User, Shop.user_id == User.id)
-            .where(User.telegram_id == telegram_id, Shop.is_active.is_(True))
+            .where(Shop.user_id == user.id, Shop.is_active.is_(True))
             .order_by(Shop.id)
             .limit(1)
         )
+
+
+async def list_user_shops(telegram_id: int) -> list[Shop]:
+    """Foydalanuvchining barcha faol do'konlari (tanlash ekrani uchun)."""
+    async with session_scope() as session:
+        return list(
+            await session.scalars(
+                select(Shop)
+                .join(User, Shop.user_id == User.id)
+                .where(User.telegram_id == telegram_id, Shop.is_active.is_(True))
+                .order_by(Shop.id)
+            )
+        )
+
+
+async def set_active_shop(telegram_id: int, shop_id: int) -> Shop | None:
+    """Joriy do'konni o'zgartiradi. Do'kon o'ziniki bo'lmasa — None (rad)."""
+    async with session_scope() as session:
+        user = await session.scalar(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        if user is None:
+            return None
+        shop = await session.scalar(
+            select(Shop).where(
+                Shop.id == shop_id,
+                Shop.user_id == user.id,
+                Shop.is_active.is_(True),
+            )
+        )
+        if shop is None:
+            return None
+        user.active_shop_id = shop.id
+        return shop
 
 
 async def history_range(shop_id: int) -> tuple[date | None, date | None]:

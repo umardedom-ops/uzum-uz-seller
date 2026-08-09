@@ -4,7 +4,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Enum, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UtcDateTime
@@ -52,6 +52,10 @@ class User(Base, TimestampMixin):
     )
     full_name: Mapped[str | None] = mapped_column(String(255))
     username: Mapped[str | None] = mapped_column(String(64))
+    # Foydalanuvchi tanlagan joriy do'kon (ko'p do'konli akkaunt uchun).
+    # DB-darajali FK qo'yilmagan (SQLite migratsiyasi sodda qolsin) — egalik
+    # `exports.set_active_shop` da tekshiriladi. None bo'lsa birinchi do'kon.
+    active_shop_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     subscription: Mapped[Subscription | None] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"

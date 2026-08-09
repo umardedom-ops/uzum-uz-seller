@@ -479,7 +479,14 @@ TEXTS: dict[str, str] = {
     "settings_paid": "to'langan",
     "settings_support": "💬 Yordam: {support}",
     "settings_btn_lang": "🌐 Tilni o'zgartirish",
+    "settings_btn_shops": "🏪 Do'konlarim",
     "settings_lang_changed": "✅ Til o'zgartirildi.",
+    "shops_header": (
+        "🏪 <b>Do'konlarim</b>\n\n"
+        "Joriy do'kon ✅ bilan belgilangan. Boshqasini tanlash uchun bosing — "
+        "barcha hisobotlar o'sha do'kon bo'yicha ko'rsatiladi."
+    ),
+    "shops_changed": "✅ Joriy do'kon: {title}",
     "not_ready": (
         "🚧 Bu bo'lim hali tayyorlanmoqda.\n\n"
         "Ma'lumotlaringiz yig'ilgach ishga tushadi."

@@ -30,7 +30,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import AlertType
 from app.services import alerts, billing
-from app.services.exports import find_user_shop
+from app.services.exports import find_user_shop, list_user_shops, set_active_shop
 
 log = get_logger(__name__)
 router = Router(name="menu")
@@ -194,6 +194,12 @@ async def on_settings(message: Message, state: FSMContext) -> None:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
+                        text=t("settings_btn_shops", lang),
+                        callback_data="shops:list",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
                         text=t("settings_btn_lang", lang),
                         callback_data="settings:lang",
                     )
@@ -205,6 +211,61 @@ async def on_settings(message: Message, state: FSMContext) -> None:
                 ],
             ]
         ),
+    )
+
+
+# ---------------------------------------------------------------------- #
+# 🏪 Do'konlarim (ko'p do'kon tanlash)
+# ---------------------------------------------------------------------- #
+
+
+async def _shops_kb(telegram_id: int, lang: str) -> InlineKeyboardMarkup:
+    """Do'kon ro'yxati — joriysi ✅ bilan belgilanadi."""
+    shops = await list_user_shops(telegram_id)
+    current = await find_user_shop(telegram_id)
+    current_id = current.id if current else None
+
+    rows = [
+        [
+            InlineKeyboardButton(
+                text=("✅ " if s.id == current_id else "")
+                + (s.title or s.uzum_shop_id),
+                callback_data=f"shops:pick:{s.id}",
+            )
+        ]
+        for s in shops
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@router.callback_query(F.data == "shops:list")
+async def on_shops_list(cb: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    shops = await list_user_shops(cb.from_user.id)
+    if not shops:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+    await cb.answer()
+    await cb.message.answer(
+        t("shops_header", lang),
+        reply_markup=await _shops_kb(cb.from_user.id, lang),
+    )
+
+
+@router.callback_query(F.data.startswith("shops:pick:"))
+async def on_shop_pick(cb: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    shop_id = int(cb.data.rsplit(":", 1)[1])
+
+    shop = await set_active_shop(cb.from_user.id, shop_id)
+    if shop is None:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+
+    await cb.answer(t("shops_changed", lang, title=shop.title or shop.uzum_shop_id))
+    # Ro'yxatni yangilab, yangi tanlovni ✅ bilan ko'rsatamiz
+    await cb.message.edit_reply_markup(
+        reply_markup=await _shops_kb(cb.from_user.id, lang)
     )
 
 
