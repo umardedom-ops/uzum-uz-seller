@@ -6,7 +6,7 @@
 ## Qisqacha
 
 Uzum Market sellerlari uchun Telegram bot. Kod to'liq yozilgan,
-**298 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
+**604 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
 bilan ishlaydi.
 
 **Audit raqamlari 2026-08-07 da tekshirildi va tuzatildi** —
@@ -23,11 +23,16 @@ bilan ishlaydi.
 | 6 xil audit (5.1–5.5 + saqlash xarajati) | ✅ sverka qilingan |
 | Manba bo'sh bo'lsa ochiq aytiladi | ✅ |
 | Excel / PDF / pretenziya + qo'shimcha kelishuv | ✅ |
-| FBS yorliqlar, qoldiq, yunit-iqtisodiyot | ✅ |
+| Yo'qotilgan pul · Qoldiqlar · Yunit-iqtisodiyot | ✅ |
+| **Hisobotlar** (bugun/kecha/7 kun) | ✅ 2026-08-09 da yozildi |
+| **FBS buyurtmalar** | ✅ 2026-08-09 da tuzatildi |
 | Obuna: 3 kun sinov (Basic), Basic 149k / Pro 299k | ✅ |
+| **Promokodlar** — hamkorlar orqali bepul kirish | ✅ yangi |
+| Tariflar banneri + API video qo'llanma | ✅ yangi |
 | Admin: birinchi `/start` bosgan avtomatik admin | ✅ |
 | Serverda 24/7 (Docker + PostgreSQL) | ✅ ishlab turibdi |
 | HTTPS domen + webhook | ✅ `uzumbot.8xspuf.easypanel.host` |
+| 🔔 Bildirishnomalar · ⚙️ Sozlamalar | ❌ **yozilmagan** (`menu.py` → `not_ready`) |
 | **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
 
 > ⛔ **Click hozircha O'CHIRILGAN** (`CLICK_SECRET_KEY` bo'sh).
@@ -63,6 +68,26 @@ buyurtma yozuvi bilan tasdiqlanadi.
 
 Batafsil: `docs/sverka/xulosa.md`.
 
+## 2026-08-09 da qilingan ishlar
+
+**Bo'limlar sinovi.** Har bir menyu bo'limi serverdagi haqiqiy ma'lumot
+bilan chaqirib ko'rildi. Natija: 5 tasi ishlaydi, **FBS buzuq edi**,
+3 tasi umuman yozilmagan. FBS tuzatildi, Hisobotlar yozildi.
+
+**Promokodlar.** Admin kod yaratadi (`/promo_new`), hamkor sellerga
+beradi, seller botga yuboradi — tarif ochiladi. Kod amal qilayotgan
+obuna ustiga qo'shiladi; bitta odam bitta kodni ikki marta ishlata
+olmaydi.
+
+**Ko'rinish.** Ekranlardagi takrorlanish olib tashlandi (narx uch marta
+yozilardi), tariflar `blockquote` kartochkalariga o'tkazildi, tarif
+ekraniga banner rasm va API yo'riqnomasiga video qo'llanma qo'shildi.
+
+> ⚠️ Video qo'llanmada API kalitlari ochiq ko'rinardi (4 ta, ikkitasi
+> faol). Kalitlar ustuni xiralashtirildi, login va moliya sahifasi
+> kesildi. **Asl fayl va chat tarixida kalitlar qolgan — ularni
+> kabinetda almashtirish tavsiya etiladi.**
+
 ## Yo'l-yo'lakay tuzatilgan xatolar (takrorlanmasin)
 
 1. **`quantityCreated` ≠ omborga qabul.** Bir do'konda 0, boshqasida
@@ -86,6 +111,13 @@ Batafsil: `docs/sverka/xulosa.md`.
    so'raladi. Miqdor `packedAmount` dan olinadi.
 10. **Eskirgan topilmalar o'chmasdi** → tuzatilgan formuladan keyin ham
     eski soxta summa ko'rinardi. Endi `_persist` ularni tozalaydi.
+11. **FBS sahifa hajmi 100 yuborilardi** — Uzum `/v2/fbs/*` da 50 dan
+    ko'pini qabul qilmaydi (`400 Illegal argument`). Xato yutilib, bo'lim
+    jimgina o'lik turardi.
+12. **Testlar haqiqiy bazaga yozardi** — izolyatsiya yo'q edi. Endi
+    `tests/conftest.py` har sessiyaga vaqtinchalik baza beradi.
+13. **Alembic `UtcDateTime` uchun import qo'shmasdi** → har yangi
+    migratsiya `NameError` bilan yiqilardi. `env.py` da `render_item`.
 
 ## Ma'lumotlar bazasi holati
 
