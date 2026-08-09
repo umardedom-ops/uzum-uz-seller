@@ -249,17 +249,28 @@ async def _run_and_show(
 
 
 def _render_summary(findings: list[Discrepancy], lang: str) -> str:
+    """Topilmalar turi bo'yicha yig'indi.
+
+    Ro'yxat <blockquote> ichida: Telegram uni ajratib chizadi, shuning
+    uchun jami summa aralashib ketmaydi va ko'z darhol unga tushadi.
+    """
     totals: dict[str, Decimal] = {}
+    counts: dict[str, int] = {}
     for item in findings:
         label = KIND_LABELS.get(item.kind, item.kind.value)
         totals[label] = totals.get(label, Decimal("0")) + (item.amount or Decimal("0"))
+        counts[label] = counts.get(label, 0) + 1
 
     total = sum(totals.values(), Decimal("0"))
-    lines = [t("losses_header_short", lang), ""]
-    for label, amount in sorted(totals.items(), key=lambda x: -x[1]):
-        lines.append(f"• {label}: <b>{format_money(amount)}</b> so'm")
-    lines += ["", t("losses_total", lang, total=format_money(total))]
-    return "\n".join(lines)
+    rows = [
+        f"{label} · {counts[label]} ta\n<b>{format_money(amount)}</b> so'm"
+        for label, amount in sorted(totals.items(), key=lambda x: -x[1])
+    ]
+    return (
+        f"{t('losses_header_short', lang)}\n\n"
+        + "\n".join(f"<blockquote>{row}</blockquote>" for row in rows)
+        + f"\n\n{t('losses_total', lang, total=format_money(total))}"
+    )
 
 
 # ---------------------------------------------------------------------- #

@@ -23,13 +23,14 @@ TEXTS: dict[str, str] = {
     # bir band muhim va tushib qolmasligi kerak.
     "oferta": (
         "📄 <b>Foydalanish shartlari</b>\n\n"
-        "🔒 Do'konga <b>faqat o'qish</b> uchun ulanamiz — hech narsani "
-        "o'zgartirmaymiz\n\n"
+        "<blockquote>🔒 Do'konga <b>faqat o'qish</b> uchun ulanamiz — hech "
+        "narsani o'zgartirmaymiz\n\n"
         "🔑 API kalitingiz <b>shifrlangan</b>, istalgan payt bekor qila "
         "olasiz\n\n"
         "📊 Hisobot — <b>tahliliy taxmin</b>, yuridik dalil emas. Da'vodan "
         "oldin tekshiring\n\n"
-        "⚖️ Biz Uzum Market bilan bog'liq emasmiz — mustaqil xizmatmiz\n\n"
+        "⚖️ Biz Uzum Market bilan bog'liq emasmiz — mustaqil "
+        "xizmatmiz</blockquote>\n\n"
         "Davom etsangiz, shartlarni qabul qilgan hisoblanasiz."
     ),
     "btn_oferta_full": "📄 Oferta",
@@ -53,15 +54,19 @@ TEXTS: dict[str, str] = {
         "hech narsani o'zgartira olmaymiz."
     ),
     "btn_how_to": "📖 Qanday qilish kerak?",
+    # Xavfsizlik izohi yig'iladigan blokda: u muhim, lekin har safar
+    # ko'rinib turishi shart emas — qadamlar ustidan diqqatni oladi.
     "instruction": (
-        "📖 <b>API kalitni qanday olish — 4 qadam</b>\n\n"
-        "1️⃣ Kompyuterda <code>seller.uzum.uz</code> ga kiring\n\n"
-        "2️⃣ Yuqori o'ng burchakda <b>Mening profilim</b> → <b>API kalitlar</b>\n\n"
-        "3️⃣ Yangi kalit yarating\n\n"
+        "📖 <b>API kalitni qanday olish</b>\n\n"
+        "1️⃣ Kompyuterda <code>seller.uzum.uz</code> ga kiring\n"
+        "2️⃣ <b>Mening profilim</b> → <b>API kalitlar</b>\n"
+        "3️⃣ Yangi kalit yarating\n"
         "4️⃣ Kalitni nusxalab, shu yerga yuboring\n\n"
-        "🔒 Kalitingiz <b>shifrlangan holda</b> saqlanadi va xabaringiz "
-        "darhol o'chiriladi.\n"
-        "Kalitni istalgan payt kabinetdan bekor qila olasiz."
+        "<blockquote expandable>🔒 <b>Xavfsizlik</b>\n"
+        "Kalit shifrlangan holda saqlanadi, xabaringiz darhol o'chiriladi. "
+        "Do'koningizni faqat o'qiymiz — tovar, narx yoki qoldiqni "
+        "o'zgartira olmaymiz. Kalitni istalgan payt kabinetdan bekor "
+        "qilishingiz mumkin.</blockquote>"
     ),
     "ask_api_key": (
         "🔑 <b>API kalitni yuboring</b>\n\n"
@@ -276,15 +281,21 @@ TEXTS: dict[str, str] = {
     "plan_current": "Hozirgi tarif: <b>{plan}</b> · {days} kun qoldi",
     # --- Onboarding: tarif tanlash (do'kon ulangandan keyin) ---
     "choose_plan": (
+        # Har tarif alohida <blockquote> — Telegram ularni chap tomonda
+        # rangli chiziq va och fon bilan chizadi, ya'ni uch dona
+        # KARTOCHKA ko'rinadi. Tekis matnda ular bir-biriga qo'shilib
+        # ketardi va tanlash qiyin edi.
+        #
         # Narx bu yerda takrorlanmaydi — u tugmalarda. Matn faqat
-        # tariflar ORASIDAGI FARQNI aytadi, shuning uchun qisqa.
+        # tariflar ORASIDAGI FARQNI aytadi.
         "💎 <b>Tarifni tanlang</b>\n\n"
-        "🎁 <b>Bepul</b> · {trial_days} kun\n"
-        "Karta so'ralmaydi\n\n"
-        "📦 <b>Basic</b>\n"
-        "Yo'qotishlarni topish · Excel dalil · pretenziya\n\n"
-        "🚀 <b>Pro</b>\n"
-        "Basic + yunit-iqtisodiyot · FBS yorliqlar · ogohlantirishlar"
+        "<blockquote>🎁 <b>Bepul</b> · {trial_days} kun\n"
+        "Karta so'ralmaydi</blockquote>\n"
+        "<blockquote>📦 <b>Basic</b>\n"
+        "Yo'qotishlarni topish · Excel dalil · pretenziya</blockquote>\n"
+        "<blockquote>🚀 <b>Pro</b>\n"
+        "Basic'dagi hammasi + yunit-iqtisodiyot · FBS yorliqlar · "
+        "ogohlantirishlar</blockquote>"
     ),
     "btn_plan_free": "🎁 Bepul · {trial_days} kun",
     "btn_plan_basic": "📦 Basic · {price} so'm/oy",
