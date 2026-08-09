@@ -7,7 +7,13 @@ from app.db.models.audit import (  # noqa: I001
     DiscrepancyKind,
     DiscrepancyStatus,
 )
-from app.db.models.billing import Payment, PaymentMethod, PaymentStatus
+from app.db.models.billing import (
+    Payment,
+    PaymentMethod,
+    PaymentStatus,
+    PromoCode,
+    PromoRedemption,
+)
 from app.db.models.data import (
     Compensation,
     FinanceOp,
@@ -40,6 +46,8 @@ __all__ = [
     "Payment",
     "PaymentMethod",
     "PaymentStatus",
+    "PromoCode",
+    "PromoRedemption",
     "Plan",
     "Product",
     "Return",

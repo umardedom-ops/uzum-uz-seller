@@ -10,7 +10,7 @@ Ikki yo'l:
 from __future__ import annotations
 
 from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
@@ -20,6 +20,7 @@ from aiogram.types import (
 )
 
 from app.bot.keyboards.billing import click_pay_kb, manual_paid_kb, plans_kb
+from app.bot.keyboards.menu import main_menu_kb
 from app.bot.states.onboarding import Onboarding
 from app.bot.texts import DEFAULT_LANG, t
 from app.core.config import get_settings
@@ -83,11 +84,28 @@ async def offer_payment_after_connect(
 
 @router.message(Onboarding.choosing_plan)
 async def on_message_while_choosing(message: Message, state: FSMContext) -> None:
-    """Tarif tanlanmasdan yozilgan xabar — eslatib qo'yamiz.
+    """Tarif tanlash bosqichida yozilgan xabar.
 
-    Tanlash majburiy: bu bosqichda menyu tugmalari hali yo'q.
+    Avval promokod deb tekshiramiz: hamkor sellerga «botga kiring va
+    kodni yuboring» deydi, seller esa aynan shu ekranда turadi. Buyruq
+    yozishni talab qilsak ko'pchilik adashadi.
+
+    Kod bo'lmasa — tanlash majburiyligini eslatamiz.
     """
-    await message.answer(t("plan_must_choose", await _lang(state)))
+    lang = await _lang(state)
+    text = (message.text or "").strip()
+
+    if _looks_like_code(text):
+        result, plan, days = await billing.redeem_promo(message.from_user.id, text)
+        if result is billing.PromoResult.OK:
+            await _promo_success(message, state, lang, plan, days)
+            return
+        if result is not billing.PromoResult.NOT_FOUND:
+            # Kod haqiqiy, lekin ishlamadi — sababini aytamiz
+            await message.answer(t(_PROMO_ERRORS[result], lang))
+            return
+
+    await message.answer(t("plan_must_choose", lang))
 
 
 @router.message(Command("tarif", "tariff", "pay"))
@@ -311,3 +329,61 @@ def _user_id(event: Message | CallbackQuery) -> int:
 async def _lang(state: FSMContext) -> str:
     data = await state.get_data()
     return data.get("lang", DEFAULT_LANG)
+
+
+# ---------------------------------------------------------------------- #
+# Promokod — hamkorlar orqali bepul kirish
+# ---------------------------------------------------------------------- #
+
+#: Natija → matn kaliti
+_PROMO_ERRORS = {
+    billing.PromoResult.NOT_FOUND: "promo_not_found",
+    billing.PromoResult.EXPIRED: "promo_expired",
+    billing.PromoResult.USED_UP: "promo_used_up",
+    billing.PromoResult.ALREADY_USED: "promo_already_used",
+    billing.PromoResult.NO_USER: "promo_no_user",
+}
+
+
+def _looks_like_code(text: str) -> bool:
+    """Promokodga o'xshaydimi — 6-32 ta harf/raqam, bo'shliqsiz."""
+    return 6 <= len(text) <= 32 and text.isalnum()
+
+
+@router.message(Command("promo", "kod"))
+async def cmd_promo(
+    message: Message, command: CommandObject, state: FSMContext
+) -> None:
+    """`/promo KOD` — bepul kirish kodini faollashtirish."""
+    lang = await _lang(state)
+    code = (command.args or "").strip()
+    if not code:
+        await message.answer(t("promo_ask", lang))
+        return
+
+    result, plan, days = await billing.redeem_promo(message.from_user.id, code)
+    if result is billing.PromoResult.OK:
+        await message.answer(
+            t("promo_ok", lang, plan=_plan_name(plan, lang), days=days)
+        )
+        return
+    await message.answer(t(_PROMO_ERRORS[result], lang))
+
+
+async def _promo_success(
+    message: Message, state: FSMContext, lang: str, plan: Plan, days: int
+) -> None:
+    """Kod ishladi: onboarding tugaydi va menyu ochiladi.
+
+    `chosen_plan` bepulga o'rnatiladi — do'kon ulangach to'lov
+    so'ralmasligi uchun (obuna allaqachon faol).
+    """
+    await message.answer(t("promo_ok", lang, plan=_plan_name(plan, lang), days=days))
+    await state.update_data(chosen_plan="free")
+    await state.set_state(Onboarding.done)
+
+    is_admin = await billing.is_admin(message.from_user.id)
+    await message.answer(
+        t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
+        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+    )

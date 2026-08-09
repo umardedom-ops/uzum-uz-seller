@@ -341,6 +341,23 @@ TEXTS: dict[str, str] = {
         "To'lagach <b>«To'ladim»</b> tugmasini bosing. "
         "Tekshirib, obunangizni faollashtiramiz."
     ),
+    # --- Promokod ---
+    "promo_ask": (
+        "\U0001F39F Kodni yuboring.\n\n"
+        "Masalan: <code>/promo ABCD2345</code>\n"
+        "yoki shunchaki kodning o'zini yozing."
+    ),
+    "promo_ok": (
+        "\U0001F389 <b>Kod qabul qilindi!</b>\n\n"
+        "Tarif: <b>{plan}</b>\n"
+        "Muddat: <b>{days} kun</b>\n\n"
+        "Hammasi ochiq — foydalanishingiz mumkin."
+    ),
+    "promo_not_found": "❌ Bunday kod topilmadi. Yozilishini tekshiring.",
+    "promo_expired": "⌛ Bu kodning muddati tugagan.",
+    "promo_used_up": "\U0001F512 Bu kod limitgacha ishlatilgan.",
+    "promo_already_used": "ℹ️ Siz bu koddan allaqachon foydalangansiz.",
+    "promo_no_user": "\U0001F517 Avval /start bosing, keyin kodni yuboring.",
     "payment_not_ready": (
         "⏳ <b>Onlayn to'lov hozircha ulanmagan.</b>\n\n"
         "Tarifni faollashtirish uchun {support} ga yozing — qo'lda "

@@ -56,6 +56,24 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _render_item(type_: str, obj: object, autogen_context: object) -> str | bool:
+    """Maxsus ustun turlarini `sa.` ko'rinishida yozadi.
+
+    ❗ Bo'lmasa autogenerate `app.db.base.UtcDateTime(...)` deb yozadi,
+    lekin migratsiya faylига o'sha importni QO'SHMAYDI — natijada
+    `NameError: name 'app' is not defined` va migratsiya yiqiladi
+    (2026-08-09 da aynan shunday bo'ldi).
+
+    `UtcDateTime` ning jismoniy DDL'i `DateTime(timezone=True)` bilan
+    bir xil, ya'ni almashtirish sxemani o'zgartirmaydi.
+    """
+    from app.db.base import UtcDateTime
+
+    if type_ == "type" and isinstance(obj, UtcDateTime):
+        return "sa.DateTime(timezone=True)"
+    return False  # qolganini alembic o'zi hal qilsin
+
+
 def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
@@ -64,6 +82,7 @@ def do_run_migrations(connection: Connection) -> None:
         # jadvalni qayta yaratib o'zgartiradi. PostgreSQL'ga zarari yo'q.
         render_as_batch=connection.dialect.name == "sqlite",
         compare_type=True,  # ustun tipi o'zgarishi ham sezilsin
+        render_item=_render_item,
     )
 
     with context.begin_transaction():

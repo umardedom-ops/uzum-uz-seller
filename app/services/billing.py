@@ -5,8 +5,11 @@ Tariflar **funksiya bo'yicha** farqlanadi:
   Basic (149 000)  — yo'qotilgan pul, qoldiqlar, kunlik hisobot, alertlar
   Pro   (299 000)  — + yunit-iqtisodiyot, FBS yorliqlar, qaytarish tahlili
 
-Sinov (3 kun) — **Pro** darajasida. Seller to'liq qiymatni ko'rsin,
-keyin o'zi tanlasin. Cheklangan sinov qiymatni yashiradi va sotmaydi.
+Sinov (3 kun) — **Basic** darajasida. Pro imkoniyatlari to'lovdan
+keyin ochiladi, aks holda sellerda to'lashga sabab qolmaydi.
+
+Bepul kirish `PromoCode` orqali ham berilishi mumkin — hamkorlar va
+adminlar uchun.
 """
 from __future__ import annotations
 
@@ -24,6 +27,8 @@ from app.db.models import (
     PaymentMethod,
     PaymentStatus,
     Plan,
+    PromoCode,
+    PromoRedemption,
     Shop,
     Subscription,
     SubscriptionStatus,
@@ -338,3 +343,148 @@ async def user_telegram_id(payment_id: int) -> int | None:
             .where(Payment.id == payment_id)
         )
         return row.scalar_one_or_none()
+
+
+# ---------------------------------------------------------------------- #
+# Promokodlar — bepul kirish
+# ---------------------------------------------------------------------- #
+
+#: Chalkashadigan belgilar olib tashlangan: 0/O, 1/I/L
+_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+class PromoResult(str, enum.Enum):
+    """Promokod natijasi. Har biriga alohida xabar ko'rsatiladi."""
+
+    OK = "ok"
+    NOT_FOUND = "not_found"
+    EXPIRED = "expired"
+    USED_UP = "used_up"
+    ALREADY_USED = "already_used"
+    NO_USER = "no_user"
+
+
+def generate_code(length: int = 8) -> str:
+    """Tasodifiy kod. Taxmin qilib topib bo'lmaydigan darajada uzun."""
+    import secrets
+
+    return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(length))
+
+
+async def create_promo(
+    *,
+    plan: Plan = Plan.PRO,
+    days: int = 30,
+    max_uses: int = 1,
+    created_by: int | None = None,
+    note: str | None = None,
+    code: str | None = None,
+) -> str:
+    """Yangi promokod yaratadi va uni qaytaradi."""
+    value = (code or generate_code()).upper()
+    async with session_scope() as session:
+        session.add(
+            PromoCode(
+                code=value,
+                plan=plan,
+                days=days,
+                max_uses=max_uses,
+                created_by=created_by,
+                note=note,
+            )
+        )
+    log.info(
+        "Promokod yaratildi: %s plan=%s kun=%s limit=%s admin=%s",
+        value, plan.value, days, max_uses, created_by,
+    )
+    return value
+
+
+async def redeem_promo(telegram_id: int, code: str) -> tuple[PromoResult, Plan | None, int]:
+    """Kodni faollashtiradi.
+
+    `(natija, tarif, kun)` qaytaradi. Muddat mavjud obuna ustiga
+    qo'shiladi — to'lagan mijoz kod ishlatsa kunlari yo'qolmasin.
+    """
+    now = utcnow()
+    value = code.strip().upper()
+
+    async with session_scope() as session:
+        user = await session.scalar(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        if user is None:
+            return PromoResult.NO_USER, None, 0
+
+        promo = await session.scalar(select(PromoCode).where(PromoCode.code == value))
+        if promo is None or not promo.is_active:
+            return PromoResult.NOT_FOUND, None, 0
+
+        if promo.expires_at is not None and promo.expires_at <= now:
+            return PromoResult.EXPIRED, None, 0
+
+        if promo.max_uses and promo.used_count >= promo.max_uses:
+            return PromoResult.USED_UP, None, 0
+
+        already = await session.scalar(
+            select(PromoRedemption).where(
+                PromoRedemption.promo_id == promo.id,
+                PromoRedemption.user_id == user.id,
+            )
+        )
+        if already is not None:
+            return PromoResult.ALREADY_USED, None, 0
+
+        sub = await session.scalar(
+            select(Subscription).where(Subscription.user_id == user.id)
+        )
+        if sub is None:
+            sub = Subscription(user_id=user.id)
+            session.add(sub)
+
+        # Amal qilayotgan muddat ustiga qo'shamiz, aks holda bugundan
+        start = sub.paid_until if (sub.paid_until and sub.paid_until > now) else now
+        sub.paid_until = start + timedelta(days=promo.days)
+        sub.plan = promo.plan
+        sub.status = SubscriptionStatus.ACTIVE
+
+        promo.used_count += 1
+        session.add(PromoRedemption(promo_id=promo.id, user_id=user.id))
+
+        plan, days = promo.plan, promo.days
+
+    log.info("Promokod ishlatildi: %s tg_id=%s", value, telegram_id)
+    return PromoResult.OK, plan, days
+
+
+async def list_promos(limit: int = 20) -> list[dict[str, object]]:
+    """Oxirgi kodlar — admin panelida ko'rsatish uchun."""
+    async with session_scope() as session:
+        rows = await session.scalars(
+            select(PromoCode).order_by(PromoCode.id.desc()).limit(limit)
+        )
+        return [
+            {
+                "code": p.code,
+                "plan": p.plan.value,
+                "days": p.days,
+                "used": p.used_count,
+                "max_uses": p.max_uses,
+                "active": p.is_active,
+                "note": p.note or "",
+            }
+            for p in rows
+        ]
+
+
+async def deactivate_promo(code: str) -> bool:
+    """Kodni o'chiradi — tarqalib ketgan bo'lsa to'xtatish uchun."""
+    async with session_scope() as session:
+        promo = await session.scalar(
+            select(PromoCode).where(PromoCode.code == code.strip().upper())
+        )
+        if promo is None:
+            return False
+        promo.is_active = False
+    log.info("Promokod o'chirildi: %s", code)
+    return True

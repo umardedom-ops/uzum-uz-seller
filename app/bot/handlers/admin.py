@@ -16,6 +16,7 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.texts import LANGS, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.db.models import Plan
 from app.services import billing
 
 log = get_logger(__name__)
@@ -78,6 +79,12 @@ async def cmd_admin(message: Message) -> None:
         "<code>/users</code> — oxirgi foydalanuvchilar",
         "<code>/makeadmin 123456</code> — admin qilish",
         "<code>/unadmin 123456</code> — huquqni olib tashlash",
+        "",
+        "<b>Bepul kirish:</b>",
+        "<code>/promo_new</code> — Pro, 30 kun, 1 martalik kod",
+        "<code>/promo_new pro 90 10</code> — tarif, kun, necha kishiga",
+        "<code>/promos</code> — kodlar ro'yxati",
+        "<code>/promo_off KOD</code> — kodni to'xtatish",
     ]
 
     await message.answer("\n".join(lines))
@@ -238,3 +245,86 @@ def _parse_id(args: str | None) -> int | None:
         return int(args.strip().split()[0])
     except (ValueError, IndexError):
         return None
+
+
+# ---------------------------------------------------------------------- #
+# Promokodlar — hamkorlar orqali bepul ulash
+# ---------------------------------------------------------------------- #
+
+
+@router.message(Command("promo_new"))
+async def cmd_promo_new(message: Message, command: CommandObject) -> None:
+    """Yangi bepul kirish kodi.
+
+    `/promo_new` — Pro, 30 kun, 1 kishiga
+    `/promo_new pro 90 10` — Pro, 90 kun, 10 kishiga
+    """
+    if not await billing.is_admin(message.from_user.id):
+        return
+
+    parts = (command.args or "").split()
+    plan = Plan.PRO
+    days, uses = 30, 1
+    try:
+        if len(parts) >= 1:
+            plan = Plan(parts[0].lower())
+        if len(parts) >= 2:
+            days = int(parts[1])
+        if len(parts) >= 3:
+            uses = int(parts[2])
+    except (ValueError, KeyError):
+        await message.answer(
+            "❌ Format: <code>/promo_new pro 90 10</code>\n"
+            "(tarif: basic yoki pro · kun · necha kishiga)"
+        )
+        return
+
+    code = await billing.create_promo(
+        plan=plan, days=days, max_uses=uses, created_by=message.from_user.id
+    )
+    limit = "cheksiz" if uses == 0 else f"{uses} kishiga"
+    await message.answer(
+        f"✅ <b>Kod tayyor</b>\n\n"
+        f"<code>{code}</code>\n\n"
+        f"Tarif: <b>{plan.value.upper()}</b> · {days} kun · {limit}\n\n"
+        f"Sellerga shu xabarni yuboring:\n"
+        f"<blockquote>Botga kiring va shu kodni yuboring: {code}</blockquote>"
+    )
+
+
+@router.message(Command("promos"))
+async def cmd_promos(message: Message) -> None:
+    """Yaratilgan kodlar ro'yxati."""
+    if not await billing.is_admin(message.from_user.id):
+        return
+
+    rows = await billing.list_promos()
+    if not rows:
+        await message.answer("Hozircha kod yaratilmagan.")
+        return
+
+    lines = ["🎟 <b>Promokodlar</b>", ""]
+    for r in rows:
+        limit = "∞" if r["max_uses"] == 0 else r["max_uses"]
+        mark = "" if r["active"] else " ⛔"
+        lines.append(
+            f"<code>{r['code']}</code> · {r['plan'].upper()} · {r['days']} kun · "
+            f"{r['used']}/{limit}{mark}"
+        )
+    lines += ["", "To'xtatish: <code>/promo_off KOD</code>"]
+    await message.answer("\n".join(lines))
+
+
+@router.message(Command("promo_off"))
+async def cmd_promo_off(message: Message, command: CommandObject) -> None:
+    """Kodni to'xtatish — tarqalib ketgan bo'lsa."""
+    if not await billing.is_admin(message.from_user.id):
+        return
+
+    code = (command.args or "").strip()
+    if not code:
+        await message.answer("Format: <code>/promo_off KOD</code>")
+        return
+
+    ok = await billing.deactivate_promo(code)
+    await message.answer("⛔ Kod to'xtatildi." if ok else "❌ Bunday kod topilmadi.")

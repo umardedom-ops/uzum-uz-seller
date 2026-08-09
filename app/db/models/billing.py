@@ -50,3 +50,50 @@ class Payment(Base, TimestampMixin):
     note: Mapped[str | None] = mapped_column(String(512))
     confirmed_by: Mapped[int | None] = mapped_column()  # admin telegram_id
     paid_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+
+
+class PromoCode(Base, TimestampMixin):
+    """Bepul kirish kodi.
+
+    Nima uchun kerak: hamkorlar va adminlar sellerni to'lovsiz ulashi
+    mumkin bo'lsin. Har kod jurnalga tushadi — kim yaratgan, necha marta
+    ishlatilgan, qachon tugaydi. Bu «kimga bepul berdik» degan savolga
+    javob beradi.
+
+    `max_uses = 0` — cheksiz. Kod muddati (`expires_at`) yo'q bo'lsa
+    muddatsiz.
+    """
+
+    __tablename__ = "promo_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    #: Har doim KATTA harfda saqlanadi — kiritishda registr muhim bo'lmasin
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    plan: Mapped[Plan] = mapped_column(
+        Enum(Plan, native_enum=False, length=16), default=Plan.PRO
+    )
+    days: Mapped[int] = mapped_column(default=30)
+    max_uses: Mapped[int] = mapped_column(default=1)
+    used_count: Mapped[int] = mapped_column(default=0)
+    expires_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_by: Mapped[int | None] = mapped_column()  # admin telegram_id
+    note: Mapped[str | None] = mapped_column(String(255))
+
+
+class PromoRedemption(Base, TimestampMixin):
+    """Kim qaysi kodni ishlatgani.
+
+    ❗ Bir foydalanuvchi bitta kodni ikki marta ishlatib muddatni
+    cheksiz uzaytira olmasligi kerak — shu jadval buni to'xtatadi.
+    """
+
+    __tablename__ = "promo_redemptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    promo_id: Mapped[int] = mapped_column(
+        ForeignKey("promo_codes.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
