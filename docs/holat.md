@@ -33,6 +33,7 @@ bilan ishlaydi.
 | Serverda 24/7 (Docker + PostgreSQL) | ✅ ishlab turibdi |
 | HTTPS domen + webhook | ✅ `uzumbot.8xspuf.easypanel.host` |
 | 🔔 Bildirishnomalar · ⚙️ Sozlamalar | ❌ **yozilmagan** (`menu.py` → `not_ready`) |
+| **Qoldiq o'zgartirish (YOZISH)** | 🧪 **demo** — oqim tayyor, jonli o'chiq (pastga qarang) |
 | **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
 
 > ⛔ **Click hozircha O'CHIRILGAN** (`CLICK_SECRET_KEY` bo'sh).
@@ -44,6 +45,35 @@ bilan ishlaydi.
 > Hech qanday to'lov usuli yo'q bo'lsa, bot pullik tarif tanlaganга
 > «onlayn to'lov ulanmagan, support'ga yozing» deb aytadi va bepul
 > muddat bilan davom etadi. Tupik yo'q.
+
+## Yozish (POST) — birinchi ficha: qoldiq o'zgartirish
+
+Ilgari Uzumga faqat GET yuborardik (qattiq qoida). Endi **yozish
+ehtiyotkorlik bilan ochildi** — birinchi ficha: FBS qoldig'ini botdan
+o'zgartirish. Sabab: API kalit read-only emas, to'liq huquq beradi
+(`docs/api-inventory.md §7`) — raqobatchining yozishga muhtoj fichalari
+(qoldiq, narx) shu kalit orqali qilinadi, menejer roli kerak emas.
+
+**Xavfsizlik uch qatlam:**
+
+1. **Ajratilgan.** Yozish faqat `app/uzum/writes.py` (`UzumWriteClient`).
+   Audit/sync uni import qilmaydi — "audit faqat GET" kodda ko'rinadi.
+2. **Bayroq.** `UZUM_WRITES_ENABLED` (standart **o'chiq**). O'chiq bo'lsa
+   oqim **demo** rejimda ishlaydi: amal `stock_write_log` ga `DEMO`
+   sifatida tushadi, foydalanuvchiga "jonli emas" deyiladi.
+3. **Tasdiq + jurnal.** Har amal foydalanuvchi tasdig'i bilan, `base.post`
+   qayta urinmaydi (ikki marta yozishdan saqlanish), har amal
+   `stock_write_log` ga (kim, do'kon, sku, eski→yangi, natija) yoziladi.
+
+**Oqim:** Qoldiqlar ekrani → «✏️ Qoldiqni o'zgartirish» → SKU tanlash →
+yangi son → tasdiq ekrani → yoziladi. Kod: `app/bot/handlers/stock_edit.py`,
+`app/services/stock_write.py`.
+
+> ⚠️ **Jonli yoqishdan oldin:** `POST /v2/fbs/sku/stocks` so'rov TANASI
+> Swagger'dan tasdiqlanishi kerak. Hozir `writes.py:_build_stock_payload`
+> da taxminiy sxema (`{"skus":[{"skuId","amount"}]}`). Tasdiqlanib,
+> `.env` da `UZUM_WRITES_ENABLED=true` qo'yilganda jonli ishlaydi —
+> boshqa kod o'zgarmaydi. `Product.sku` = Uzum `skuId` (tekshirilgan).
 
 ## Sverka natijasi (2026-08-07)
 

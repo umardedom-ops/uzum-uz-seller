@@ -25,7 +25,14 @@ from app.db.models.data import (
     StockSnapshot,
 )
 from app.db.models.shop import AuthType, Shop, ShopCredential
-from app.db.models.system import AlertConfig, AlertType, SyncRun, SyncStatus
+from app.db.models.system import (
+    AlertConfig,
+    AlertType,
+    StockWriteLog,
+    StockWriteStatus,
+    SyncRun,
+    SyncStatus,
+)
 from app.db.models.user import Lang, Plan, Subscription, SubscriptionStatus, User
 
 __all__ = [
@@ -55,6 +62,8 @@ __all__ = [
     "ShopCredential",
     "StockMovement",
     "StockSnapshot",
+    "StockWriteLog",
+    "StockWriteStatus",
     "Subscription",
     "SubscriptionStatus",
     "SyncRun",

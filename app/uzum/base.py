@@ -1,11 +1,15 @@
-"""Uzum bilan aloqa uchun quyi qatlam — GET-only HTTP klient.
+"""Uzum bilan aloqa uchun quyi qatlam — HTTP klient.
 
-Bu qatlam endpointlarni BILMAYDI (Phase 0 tugamagan). U faqat:
-  - GET so'rov yuboradi (SPEC 9.1 — yozish amali umuman yo'q),
+Bu qatlam:
+  - GET so'rov yuboradi (o'qish — audit/hisobot shu orqali),
   - rate limit qo'yadi (do'konга soniyada 1 so'rov, SPEC 3.3),
-  - vaqtinchalik xatolarda retry qiladi.
+  - GET vaqtinchalik xatolarda retry qiladi.
 
-Aynan manzillar `client.py` da, `docs/api-inventory.md` to'lgach ulanadi.
+⚠️ YOZISH (`post`) — alohida, ehtiyot bilan. GET dan farqli o'laroq
+**qayta urinilmaydi**: `POST /v2/fbs/sku/stocks` idempotentligi tasdiqlanmagan,
+qayta yuborsak qoldiq ikki marta o'zgarishi mumkin. `post` faqat
+`app/uzum/writes.py` orqali chaqiriladi; audit/sync yo'li uni ishlatmaydi
+(CLAUDE.md qoida #1).
 """
 from __future__ import annotations
 
@@ -57,9 +61,10 @@ class RateLimiter:
 
 
 class UzumHTTP:
-    """GET-only async HTTP klient — rate limit va retry bilan.
+    """Async HTTP klient — rate limit va retry bilan.
 
-    Yozish metodi (POST/PUT/PATCH/DELETE) qasddan MAVJUD EMAS.
+    O'qish: `get`, `get_bytes` — retry bilan.
+    Yozish: `post` — retry YO'Q, faqat `writes.py` uchun (yuqoridagi izoh).
     """
 
     def __init__(
@@ -155,6 +160,37 @@ class UzumHTTP:
             headers={**(headers or {}), "Accept": "*/*"},
         )
         return resp.content, resp.headers.get("content-type", "")
+
+    async def post(
+        self,
+        path: str,
+        *,
+        rate_key: str,
+        json: Any | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        """YOZISH so'rovi — JSON qaytaradi. ⚠️ Faqat `writes.py` uchun.
+
+        GET dan farqi — **retry yo'q**. Yozishni qayta yuborish xavfli:
+        so'rov serverga yetib, javob yo'lda uzilgan bo'lsa, ikkinchi urinish
+        qoldiqni ikki marta o'zgartiradi. Shuning uchun bitta urinish; xato
+        bo'lsa chaqiruvchiga ochiq qaytaramiz (jim yutmaymiz — qoida #4).
+
+        Rate limit baribir qo'llanadi (do'kon bloklanmasin).
+        """
+        url = path if path.startswith("http") else f"{self._base_url}/{path.lstrip('/')}"
+        await self._limiter.acquire(rate_key)
+        resp = await self._client.post(
+            url, json=json, headers={**(headers or {}), "Accept": "application/json"}
+        )
+        resp.raise_for_status()
+        if not resp.content:
+            return None
+        try:
+            return resp.json()
+        except ValueError:
+            # Uzum ba'zan bo'sh yoki matnli javob qaytaradi — bu ham natija
+            return resp.text
 
     async def aclose(self) -> None:
         await self._client.aclose()

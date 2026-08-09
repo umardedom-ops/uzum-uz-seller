@@ -247,6 +247,46 @@ TEXTS: dict[str, str] = {
     "stock_caption": "📦 Qoldiqlar hisoboti. Diqqat talab qiladiganlar sariq bilan.",
     "btn_excel_short": "📊 Excel",
     "btn_pdf_short": "📄 PDF",
+    # --- Qoldiq o'zgartirish (YOZISH — tasdiq bilan) ---
+    "btn_stock_edit": "✏️ Qoldiqni o'zgartirish",
+    "stock_edit_pick": (
+        "✏️ <b>Qaysi tovar qoldig'ini o'zgartiramiz?</b>\n\n"
+        "Ro'yxatdan tanlang:"
+    ),
+    "stock_edit_empty": "✏️ O'zgartirish uchun tovar topilmadi.",
+    "stock_edit_ask_qty": (
+        "✏️ <b>{title}</b>\n\n"
+        "Joriy FBS qoldig'i: <b>{qty}</b> dona.\n\n"
+        "Yangi sonni yuboring (masalan: 30):"
+    ),
+    "stock_edit_bad_qty": (
+        "❌ Manfiy bo'lmagan butun son yuboring (masalan: 0, 12, 150)."
+    ),
+    "stock_edit_confirm": (
+        "⚠️ <b>Tasdiqlang</b>\n\n"
+        "<b>{title}</b>\n"
+        "SKU: <code>{sku}</code>\n\n"
+        "Qoldiq: <b>{old}</b> → <b>{new}</b> dona\n\n"
+        "Bu Uzum do'koningizga <b>yoziladi</b>. Tasdiqlaysizmi?"
+    ),
+    "btn_confirm_write": "✅ Ha, yozilsin",
+    "btn_cancel_write": "❌ Bekor qilish",
+    "stock_edit_applied": (
+        "✅ <b>Bajarildi.</b> Qoldiq yangilandi:\n"
+        "<b>{title}</b> → {new} dona."
+    ),
+    "stock_edit_demo": (
+        "🧪 <b>Demo rejim.</b>\n\n"
+        "Amal qayd etildi (<b>{title}</b>: {old} → {new} dona), lekin jonli "
+        "yozish hali <b>yoqilmagan</b>.\n\n"
+        "Yozish yoqilgach, aynan shu tugma qoldiqni haqiqatan o'zgartiradi."
+    ),
+    "stock_edit_failed": (
+        "❌ <b>Yozib bo'lmadi.</b>\n\n"
+        "Sabab: {error}\n\n"
+        "Qoldiq o'zgarmadi. Birozdan so'ng qayta urinib ko'ring."
+    ),
+    "stock_edit_cancelled": "🚫 Bekor qilindi. Qoldiq o'zgarmadi.",
     # --- FBS buyurtmalar ---
     "fbs_loading": "⏳ Buyurtmalarni olyapman...",
     "fbs_header": "🏷 <b>Yig'ilishi kerak: {count} ta buyurtma</b>",

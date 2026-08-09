@@ -22,6 +22,7 @@ from app.bot.handlers import (
     reports,
     start,
     stock,
+    stock_edit,
 )
 from app.bot.middlewares.subscription import SubscriptionMiddleware
 from app.core.config import get_settings
@@ -49,6 +50,7 @@ def build_dispatcher() -> Dispatcher:
     dp.include_router(reports.router)
     dp.include_router(fbs.router)
     dp.include_router(stock.router)
+    dp.include_router(stock_edit.router)
     dp.include_router(economics.router)
     dp.include_router(menu.router)
     return dp
