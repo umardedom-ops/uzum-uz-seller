@@ -1,7 +1,11 @@
-"""Bildirishnoma sozlamalari va sinxronizatsiya jurnali (SPEC 4).
+"""Bildirishnoma sozlamalari, sinxronizatsiya va yozish jurnali (SPEC 4).
 
 `SyncRun` — SPEC 9.6 talabi: sync xatolari jim yutilmaydi, jurnalga
 yoziladi va adminga chiqadi.
+
+`StockWriteLog` — Uzumga YOZISH amallari izi. Har qoldiq o'zgartirish
+(kim, qachon, do'kon, sku, eski→yangi, natija) shu yerga tushadi. Yozish
+xavfli amal — hammasi kuzatiladi (CLAUDE.md qoida #1, [[uzum-writes]]).
 """
 from __future__ import annotations
 
@@ -40,6 +44,15 @@ class SyncStatus(str, enum.Enum):
     PARTIAL = "partial"
 
 
+class StockWriteStatus(str, enum.Enum):
+    """Qoldiq yozish amalining holati."""
+
+    APPLIED = "applied"    # jonli yuborildi va qabul qilindi
+    DEMO = "demo"          # bayroq o'chiq — tasdiqlandi-yu, jonli yozilmadi
+    FAILED = "failed"      # yuborildi, Uzum xato qaytardi
+    CANCELLED = "cancelled"  # foydalanuvchi tasdiq ekranida bekor qildi
+
+
 class AlertConfig(Base, TimestampMixin):
     __tablename__ = "alerts_config"
     __table_args__ = (
@@ -73,4 +86,25 @@ class SyncRun(Base, TimestampMixin):
     started_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     finished_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     records_synced: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(Text)
+
+
+class StockWriteLog(Base, TimestampMixin):
+    """Qoldiq yozish amali izi — audit uchun. Har amal bitta qator."""
+
+    __tablename__ = "stock_write_log"
+    __table_args__ = (Index("ix_stock_write_shop_created", "shop_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(
+        ForeignKey("shops.id", ondelete="CASCADE"), index=True
+    )
+    # Amalni kim boshladi (Telegram ID) — foydalanuvchi o'chsa ham iz qoladi
+    telegram_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    sku: Mapped[str] = mapped_column(String(64), index=True)
+    old_qty: Mapped[int | None] = mapped_column(Integer)
+    new_qty: Mapped[int] = mapped_column(Integer)
+    status: Mapped[StockWriteStatus] = mapped_column(
+        Enum(StockWriteStatus, native_enum=False, length=16)
+    )
     error: Mapped[str | None] = mapped_column(Text)

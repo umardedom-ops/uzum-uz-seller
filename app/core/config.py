@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # (Elore Parfume, 125841) kaliti turgani aniqlandi — u hech qayerda
     # ishlatilmasa ham, tekshiruv paytida chalg'itdi.
     uzum_rate_limit_per_sec: float = Field(1.0, alias="UZUM_RATE_LIMIT_PER_SEC")
+    # ⚠️ YOZISH (POST) — himoya kaliti. Standart holatda O'CHIQ.
+    # Audit/hisobot har doim faqat GET (CLAUDE.md qoida #1). Yozish faqat
+    # `app/uzum/writes.py` orqali, foydalanuvchi tasdig'i bilan. Bu bayroq
+    # yoqilmaguncha jonli POST yuborilmaydi — oqim tayyor bo'lsa ham demo
+    # rejimda ishlaydi. `POST /v2/fbs/sku/stocks` tanasi Swagger'dan
+    # tasdiqlangandan keyingina yoqiladi (docs/api-inventory.md §7).
+    uzum_writes_enabled: bool = Field(False, alias="UZUM_WRITES_ENABLED")
     # Birinchi ulanishda qancha tarix tortiladi. Buyurtma/qaytarish/moliya
     # uchun API tarix beradi — qoldiq uchun bermaydi (docs/api-inventory.md).
     initial_history_days: int = Field(365, alias="INITIAL_HISTORY_DAYS")

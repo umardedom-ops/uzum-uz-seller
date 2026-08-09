@@ -37,7 +37,12 @@ def _export_kb(lang: str) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text=t("btn_pdf_short", lang), callback_data="stock:pdf"
                 ),
-            ]
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("btn_stock_edit", lang), callback_data="stockedit:list:0"
+                ),
+            ],
         ]
     )
 

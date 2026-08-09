@@ -13,8 +13,15 @@ Kod izohlari, docstring'lar, commit xabarlari va bot matnlari —
 
 ## Qattiq qoidalar
 
-1. **Uzumga faqat GET.** Hech qanday POST/PUT/DELETE yo'q. `UzumHTTP`
-   da yozish metodi qasddan mavjud emas — uni qo'shmang.
+1. **Audit/hisobot/sync — faqat GET.** O'qish yo'li hech qachon yozmaydi.
+   Bu `app/uzum/api_client.py` ning mutlaq qoidasi.
+   * **Yozish (POST) faqat `app/uzum/writes.py` orqali** — audit kodi uni
+     import qilmaydi. Yozish har doim: (a) foydalanuvchi tasdig'i bilan,
+     (b) `UZUM_WRITES_ENABLED` bayrog'i ortida (standart o'chiq),
+     (c) `stock_write_log` ga yozilib. `base.post` qayta urinmaydi
+     (idempotentlik noma'lum). Sabab va tarix: `docs/holat.md` "Yozish".
+   * ⚠️ POST tanasi (body) Swagger'dan tasdiqlanmaguncha uydirilmaydi —
+     `writes.py` dagi `_build_stock_payload` shu tasdiqni kutadi.
 2. **Maxfiy ma'lumot logga tushmaydi.** API kalitlari `shop_credentials`
    da shifrlangan holda. `.env` git'ga tushmaydi.
 3. **Audit natijasi "aniq fakt" emas, "tekshirish kerak".** Noto'g'ri
