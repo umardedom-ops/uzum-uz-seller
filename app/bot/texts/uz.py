@@ -388,6 +388,29 @@ TEXTS: dict[str, str] = {
     ),
     # --- Umumiy ---
     "btn_back": "⬅️ Orqaga",
+    # --- Bildirishnomalar ---
+    "alerts_header": (
+        "🔔 <b>Bildirishnomalar</b>\n\n"
+        "Qaysi xabarlarni olishni tanlang. Bosib yoqing yoki o'chiring."
+    ),
+    "alerts_active": "⚠️ Hozir e'tibor talab qiladigan {count} ta holat bor.",
+    "alert_daily_report": "Kunlik hisobot (09:00)",
+    "alert_new_discrepancy": "Yangi yo'qotish topilganda",
+    "alert_low_stock": "Qoldiq tugayotganda",
+    "alert_sku_blocked": "Tovar bloklanganda",
+    "alert_on": "✅ Yoqildi",
+    "alert_off": "⬜ O'chirildi",
+    # --- Sozlamalar ---
+    "settings_header": "⚙️ <b>Sozlamalar</b>",
+    "settings_shop": "🏪 Do'kon: <b>{title}</b> (ID: {shop_id})",
+    "settings_no_shop": "🔗 Do'kon ulanmagan. /start bilan ulang.",
+    "settings_plan": "💎 Tarif: <b>{plan}</b> · {days} kun qoldi ({kind})",
+    "settings_plan_none": "💎 Tarif: <b>faol emas</b>",
+    "settings_trial": "sinov",
+    "settings_paid": "to'langan",
+    "settings_support": "💬 Yordam: {support}",
+    "settings_btn_lang": "🌐 Tilni o'zgartirish",
+    "settings_lang_changed": "✅ Til o'zgartirildi.",
     "not_ready": (
         "🚧 Bu bo'lim hali tayyorlanmoqda.\n\n"
         "Ma'lumotlaringiz yig'ilgach ishga tushadi."

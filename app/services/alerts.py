@@ -18,7 +18,15 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.base import session_scope
-from app.db.models import Product, Shop, StockSnapshot, Subscription, User
+from app.db.models import (
+    AlertConfig,
+    AlertType,
+    Product,
+    Shop,
+    StockSnapshot,
+    Subscription,
+    User,
+)
 
 log = get_logger(__name__)
 
@@ -163,3 +171,60 @@ async def send_alerts() -> int:
 
     log.info("Xabarnomalar yuborildi: %s ta", sent)
     return sent
+
+
+# ---------------------------------------------------------------------- #
+# Sozlamalar — seller qaysi xabarnomalarni olishini tanlaydi
+# ---------------------------------------------------------------------- #
+
+#: Seller boshqara oladigan turlar. Qolganlari (masalan NEW_ORDER)
+#: hozircha yuborilmaydi — ro'yxatda ko'rsatib chalg'itmaymiz.
+TOGGLEABLE = (
+    AlertType.DAILY_REPORT,
+    AlertType.NEW_DISCREPANCY,
+    AlertType.LOW_STOCK,
+    AlertType.SKU_BLOCKED,
+)
+
+#: Yozuv yo'q bo'lsa xabarnoma YOQILGAN hisoblanadi — seller o'zi
+#: o'chirmaguncha qiymatni ko'rsin.
+_DEFAULT_ENABLED = True
+
+
+async def alert_settings(shop_id: int) -> dict[AlertType, bool]:
+    """Do'kon bo'yicha har bir turning holati."""
+    async with session_scope() as session:
+        rows = await session.scalars(
+            select(AlertConfig).where(AlertConfig.shop_id == shop_id)
+        )
+        saved = {r.alert_type: r.enabled for r in rows}
+    return {kind: saved.get(kind, _DEFAULT_ENABLED) for kind in TOGGLEABLE}
+
+
+async def toggle_alert(shop_id: int, kind: AlertType) -> bool:
+    """Xabarnomani yoqadi/o'chiradi va yangi holatini qaytaradi."""
+    async with session_scope() as session:
+        row = await session.scalar(
+            select(AlertConfig).where(
+                AlertConfig.shop_id == shop_id, AlertConfig.alert_type == kind
+            )
+        )
+        if row is None:
+            # Birinchi marta — standart yoqilgan edi, demak o'chiramiz
+            row = AlertConfig(shop_id=shop_id, alert_type=kind, enabled=False)
+            session.add(row)
+            return False
+
+        row.enabled = not row.enabled
+        return row.enabled
+
+
+async def is_enabled(shop_id: int, kind: AlertType) -> bool:
+    """Shu turdagi xabarnoma yoqilganmi."""
+    async with session_scope() as session:
+        row = await session.scalar(
+            select(AlertConfig).where(
+                AlertConfig.shop_id == shop_id, AlertConfig.alert_type == kind
+            )
+        )
+    return _DEFAULT_ENABLED if row is None else row.enabled

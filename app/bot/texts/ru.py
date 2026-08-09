@@ -366,6 +366,29 @@ TEXTS: dict[str, str] = {
     ),
     # --- Umumiy ---
     "btn_back": "⬅️ Назад",
+    # --- Уведомления ---
+    "alerts_header": (
+        "🔔 <b>Уведомления</b>\n\n"
+        "Выберите, какие сообщения получать. Нажмите, чтобы включить или выключить."
+    ),
+    "alerts_active": "⚠️ Сейчас есть {count} ситуаций, требующих внимания.",
+    "alert_daily_report": "Ежедневный отчёт (09:00)",
+    "alert_new_discrepancy": "Когда найдена новая потеря",
+    "alert_low_stock": "Когда заканчивается остаток",
+    "alert_sku_blocked": "Когда товар заблокирован",
+    "alert_on": "✅ Включено",
+    "alert_off": "⬜ Выключено",
+    # --- Настройки ---
+    "settings_header": "⚙️ <b>Настройки</b>",
+    "settings_shop": "🏪 Магазин: <b>{title}</b> (ID: {shop_id})",
+    "settings_no_shop": "🔗 Магазин не подключён. Подключите через /start.",
+    "settings_plan": "💎 Тариф: <b>{plan}</b> · осталось {days} дн. ({kind})",
+    "settings_plan_none": "💎 Тариф: <b>не активен</b>",
+    "settings_trial": "пробный",
+    "settings_paid": "оплачен",
+    "settings_support": "💬 Поддержка: {support}",
+    "settings_btn_lang": "🌐 Сменить язык",
+    "settings_lang_changed": "✅ Язык изменён.",
     "not_ready": (
         "🚧 Этот раздел ещё готовится.\n\n"
         "Заработает, как только соберутся ваши данные."
