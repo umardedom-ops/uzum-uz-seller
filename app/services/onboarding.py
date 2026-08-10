@@ -10,9 +10,12 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from sqlalchemy import select
+
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.base import session_scope
+from app.db.models import User
 from app.db.repositories import onboarding as repo
 from app.uzum.api_client import UzumApiClient
 from app.uzum.base import UzumHTTP
@@ -201,6 +204,20 @@ async def save_user(
         if phone:
             await repo.set_phone(session, user, phone)
     log.info("User saqlandi: tg_id=%s lang=%s phone=%s", telegram_id, lang, _mask(phone))
+
+
+async def user_lang(telegram_id: int, default: str = "uz") -> str:
+    """Saqlangan tilni qaytaradi.
+
+    Kerak, chunki FSM holati vaqtinchalik (bot restartida yo'qoladi) —
+    qaytib kelgan foydalanuvchiga menyuni **o'z tilida** ko'rsatish uchun
+    manba baza bo'lishi kerak.
+    """
+    async with session_scope() as session:
+        lang = await session.scalar(
+            select(User.lang).where(User.telegram_id == telegram_id)
+        )
+    return lang.value if lang is not None else default
 
 
 async def accept_oferta(telegram_id: int) -> None:

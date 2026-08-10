@@ -37,6 +37,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.services import billing
 from app.services import onboarding as svc
+from app.services.exports import find_user_shop
 
 log = get_logger(__name__)
 router = Router(name="onboarding")
@@ -94,6 +95,32 @@ async def _lang(state: FSMContext) -> str:
 # --- 1. /start → til tanlash ---
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
+    """`/start` — qaytib kelgan foydalanuvchiga MENYU, yangisiga onboarding.
+
+    ❗ Ilgari `/start` har doim onboardingni noldan boshlardi va do'koni
+    ulangan seller ham qaytadan til → tarif → oferta → **API kalit**
+    so'roviga tushardi (2026-08-10 da jonli uchradi). Ustiga FSM holati
+    bot restartida yo'qolgani uchun bu tez-tez sodir bo'lardi: seller
+    "bot meni unutdi, kalitni yana beraymi?" degan holatga tushardi.
+
+    Endi manba — **baza**: do'kon ulangan bo'lsa, holatdan qat'i nazar
+    menyuni ko'rsatamiz va tilni bazadan olamiz.
+    """
+    shop = await find_user_shop(message.from_user.id)
+
+    if shop is not None:
+        lang = await svc.user_lang(message.from_user.id)
+        await state.clear()
+        await state.set_state(Onboarding.done)
+        await state.update_data(lang=lang, chosen_plan="free")
+
+        is_admin = await billing.is_admin(message.from_user.id)
+        await message.answer(
+            t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
+            reply_markup=main_menu_kb(lang, is_admin=is_admin),
+        )
+        return
+
     await state.clear()
     await state.set_state(Onboarding.choosing_lang)
     await message.answer(t("choose_lang"), reply_markup=lang_kb())
