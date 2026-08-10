@@ -16,6 +16,7 @@ from app.bot.handlers import (
     admin,
     billing,
     economics,
+    fallback,
     fbs,
     menu,
     money,
@@ -55,6 +56,9 @@ def build_dispatcher() -> Dispatcher:
     dp.include_router(economics.router)
     dp.include_router(top.router)
     dp.include_router(menu.router)
+    # ❗ ENG OXIRGI: ushlanmagan matnni oladi. Undan keyin hech narsa
+    # qo'shmang — aks holda u yerdagi handler hech qachon ishlamaydi.
+    dp.include_router(fallback.router)
     return dp
 
 
