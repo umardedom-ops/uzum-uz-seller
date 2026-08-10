@@ -45,7 +45,15 @@ services:
       bot:
         condition: service_started
     ports:
-      - "${WEB_PORT:-8000}:8000"
+      # ❗ Faqat localhost. Tashqi dunyoga OCHILMAYDI: Traefik bu servisga
+      # konteyner tarmog'i orqali yetadi (`http://uzumbot-web-1:8000`), host
+      # porti orqali emas. Ilgari `0.0.0.0:8000` edi — ya'ni Click webhook'i
+      # va `/health` HTTPS'ni chetlab, to'g'ridan-to'g'ri ochiq turardi.
+      #
+      # ⚠️ `ufw` bilan yopib bo'lmaydi: Docker `DOCKER-USER` zanjiri orqali
+      # ufw qoidalarini chetlab o'tadi va port ochiq qolaveradi. Yagona
+      # ishonchli yo'l — shu yerda 127.0.0.1 ga bog'lash.
+      - "127.0.0.1:${WEB_PORT:-8000}:8000"
     networks:
       - default
       # Traefik shu tarmoq orqali yetib keladi va HTTPS beradi.
