@@ -81,6 +81,25 @@ async def job_daily_report() -> None:
     await reports.send_daily_reports()
 
 
+async def job_sheets_sync() -> None:
+    """Biznes hisobotini Google Sheets'ga yozadi (sozlangan bo'lsa).
+
+    Sozlanmagan bo'lsa jim o'tadi — bu xato emas, ixtiyoriy imkoniyat.
+    Sozlangan bo'lib turib yiqilsa — admin xabar oladi.
+    """
+    from app.services import sheets_sync
+
+    if not get_settings().sheets_enabled:
+        return
+
+    try:
+        result = await sheets_sync.sync_now()
+        log.info("Google Sheets yangilandi: %s obunachi", result.subscribers)
+    except sheets_sync.SheetsSyncError as exc:
+        log.exception("Google Sheets sinxronizatsiyasi yiqildi")
+        await _alert_admin(f"⚠️ Google Sheets yangilanmadi: {exc}")
+
+
 def build_scheduler() -> AsyncIOScheduler:
     settings = get_settings()
     scheduler = AsyncIOScheduler(timezone=settings.tz)
@@ -105,6 +124,15 @@ def build_scheduler() -> AsyncIOScheduler:
         job_daily_report,
         CronTrigger(hour=9, minute=0),
         id="daily_report",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    # Kunlik hisobot jadvali — kunlik hisobotdan keyin, ma'lumot yangi bo'lsin
+    scheduler.add_job(
+        job_sheets_sync,
+        CronTrigger(hour=9, minute=30),
+        id="sheets_sync",
         max_instances=1,
         coalesce=True,
         misfire_grace_time=3600,

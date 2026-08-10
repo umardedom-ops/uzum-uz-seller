@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import Plan
 from app.docs.admin_report import build_admin_excel
-from app.services import admin_report, billing
+from app.services import admin_report, billing, sheets_sync
 
 log = get_logger(__name__)
 router = Router(name="admin")
@@ -89,6 +89,7 @@ async def cmd_admin(message: Message) -> None:
         "",
         "<b>Hisobot:</b>",
         "<code>/hisobot</code> — Excel: obunachilar, to'lovlar, kodlar",
+        "<code>/sheets</code> — Google Sheets'ni hozir yangilash",
     ]
 
     await message.answer("\n".join(lines))
@@ -123,6 +124,49 @@ async def cmd_business_report(message: Message) -> None:
 
     await status.delete()
     await message.answer_document(FSInputFile(path), caption=caption)
+
+
+@router.message(Command("sheets"))
+async def cmd_sheets_sync(message: Message) -> None:
+    """Google Sheets jadvalini hozir yangilaydi.
+
+    Sozlanmagan bo'lsa — nima qilish kerakligini aniq aytamiz, jim
+    qolmaymiz.
+    """
+    if not await billing.is_admin(message.from_user.id):
+        return
+
+    status = await message.answer("📤 Google Sheets yangilanyapti...")
+
+    try:
+        result = await sheets_sync.sync_now()
+    except sheets_sync.SheetsDisabledError:
+        await status.edit_text(
+            "⚙️ <b>Google Sheets hali sozlanmagan.</b>\n\n"
+            "Serverdagi <code>.env</code> ga ikkitasini qo'shing:\n"
+            "• <code>GOOGLE_SHEETS_ID</code> — jadval havolasidagi ID\n"
+            "• <code>GOOGLE_CREDENTIALS_FILE</code> — service account JSON yo'li\n\n"
+            "So'ng jadvalni service account <b>emailiga</b> ulashing "
+            "(Muharrir huquqi bilan).\n\n"
+            "Shu paytgacha <code>/hisobot</code> Excel'i ishlayveradi."
+        )
+        return
+    except sheets_sync.SheetsSyncError as exc:
+        await status.edit_text(
+            "⚠️ <b>Yangilanmadi.</b>\n\n"
+            f"Sabab: <code>{str(exc)[:200]}</code>\n\n"
+            "Ko'p uchraydigan sabab: jadval service account emailiga "
+            "ulashilmagan yoki Sheets API yoqilmagan."
+        )
+        return
+
+    await status.edit_text(
+        f"✅ <b>Google Sheets yangilandi</b>\n\n"
+        f"👥 Obunachilar: <b>{result.subscribers}</b>\n"
+        f"💳 To'lovlar: <b>{result.payments}</b>\n"
+        f"🎟 Kodlar: <b>{result.promos}</b>\n\n"
+        f'<a href="{result.url}">Jadvalni ochish</a>'
+    )
 
 
 @router.message(Command("users"))

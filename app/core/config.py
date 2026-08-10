@@ -92,6 +92,26 @@ class Settings(BaseSettings):
         """Avtomatik to'lov yoqilganmi (Click yoki Telegram Payments)."""
         return self.click_enabled or bool(self.payment_provider_token)
 
+    # --- Google Sheets (biznes hisoboti sinxronizatsiyasi) ---
+    # Ikkalasi ham berilmasa sinxronizatsiya O'CHIQ turadi — bot bemalol
+    # ishlayveradi, `/hisobot` Excel'i esa har doim mavjud.
+    #
+    # ⚠️ Service account JSON kaliti `.env` ga EMAS, alohida faylga
+    # qo'yiladi (yo'li shu yerda). Kalit git'ga tushmaydi.
+    google_sheets_id: str = Field("", alias="GOOGLE_SHEETS_ID")
+    google_credentials_file: str = Field("", alias="GOOGLE_CREDENTIALS_FILE")
+
+    @property
+    def sheets_enabled(self) -> bool:
+        """Sinxronizatsiya sozlanganmi (jadval ID + kalit fayli bor)."""
+        from pathlib import Path
+
+        return bool(
+            self.google_sheets_id
+            and self.google_credentials_file
+            and Path(self.google_credentials_file).is_file()
+        )
+
     # --- Umumiy ---
     env: str = Field("dev", alias="ENV")
     log_level: str = Field("INFO", alias="LOG_LEVEL")

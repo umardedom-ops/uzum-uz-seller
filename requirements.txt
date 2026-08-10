@@ -22,6 +22,11 @@ pypdf>=4.0               # yorliqlarni bitta PDF'ga birlashtirish
 # DIQQAT: PDF'da kirill matn uchun TrueType shrift kerak.
 # Linux serverda: apt install fonts-dejavu-core
 
+# --- Google Sheets sinxronizatsiyasi ---
+# Ixtiyoriy: kalit va jadval ID berilmasa sinxronizatsiya o'chiq turadi.
+gspread>=6.0
+google-auth>=2.35
+
 # --- Config & security ---
 pydantic>=2.9
 pydantic-settings>=2.5
