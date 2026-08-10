@@ -11,13 +11,14 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from app.bot.texts import LANGS, t
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import Plan
-from app.services import billing
+from app.docs.admin_report import build_admin_excel
+from app.services import admin_report, billing
 
 log = get_logger(__name__)
 router = Router(name="admin")
@@ -85,9 +86,43 @@ async def cmd_admin(message: Message) -> None:
         "<code>/promo_new pro 90 10</code> — tarif, kun, necha kishiga",
         "<code>/promos</code> — kodlar ro'yxati",
         "<code>/promo_off KOD</code> — kodni to'xtatish",
+        "",
+        "<b>Hisobot:</b>",
+        "<code>/hisobot</code> — Excel: obunachilar, to'lovlar, kodlar",
     ]
 
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("hisobot", "report"))
+async def cmd_business_report(message: Message) -> None:
+    """Biznes hisoboti Excel — Google Sheets'ga import qilsa ham bo'ladi.
+
+    To'rt varaq: Xulosa · Obunachilar · To'lovlar · Promokodlar. To'lov
+    holati rang bilan ajratiladi (tasdiqlangan / kutilmoqda / rad etilgan).
+    """
+    if not await billing.is_admin(message.from_user.id):
+        return  # jim — bu buyruq borligini bildirmaymiz
+
+    status = await message.answer("📊 Hisobot tayyorlanyapti...")
+
+    report = await admin_report.collect()
+    path = build_admin_excel(report, "generated/biznes-hisobot.xlsx")
+
+    s = report.summary
+    caption = (
+        f"📊 <b>Biznes hisoboti</b>\n\n"
+        f"👥 Foydalanuvchi: <b>{s.users}</b> · do'kon ulagan: <b>{s.with_shop}</b>\n"
+        f"✅ Faol obuna: <b>{s.active_subs}</b>\n"
+        f"💰 Tasdiqlangan tushum: <b>{s.paid_total:,.0f}</b> so'm "
+        f"({s.paid_count} ta)\n"
+        f"⏳ Tasdiqlanmagan: <b>{s.pending_total:,.0f}</b> so'm "
+        f"({s.pending_count} ta)\n\n"
+        f"<i>Google Sheets: Fayl → Import → yuklash</i>"
+    ).replace(",", " ")
+
+    await status.delete()
+    await message.answer_document(FSInputFile(path), caption=caption)
 
 
 @router.message(Command("users"))
