@@ -20,7 +20,14 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.base import session_scope
-from app.db.models import AuthType, Shop, ShopCredential, StockWriteLog, StockWriteStatus
+from app.db.models import (
+    AuthType,
+    Product,
+    Shop,
+    ShopCredential,
+    StockWriteLog,
+    StockWriteStatus,
+)
 from app.services.exports import load_stock_rows
 from app.uzum.base import UzumHTTP
 from app.uzum.models import AuthType as ClientAuthType
@@ -117,7 +124,31 @@ async def log_cancelled(
 # --------------------------------------------------------------------------- #
 
 
+async def _barcode_for(shop_id: int, sku: str) -> str | None:
+    """SKU ning shtrix kodi.
+
+    ❗ Uzum qoldiqni aynan **shtrix kod** bo'yicha yangilaydi (`skuId`
+    ixtiyoriy) — docs/api-inventory.md §5-quinquies. Shtrix kodsiz
+    so'rov jimgina rad etiladi, shuning uchun oldindan tekshiramiz.
+    """
+    async with session_scope() as session:
+        return await session.scalar(
+            select(Product.barcode).where(
+                Product.shop_id == shop_id, Product.sku == sku
+            )
+        )
+
+
 async def _do_write(shop_id: int, *, sku: str, new_qty: int) -> WriteOutcome:
+    barcode = await _barcode_for(shop_id, sku)
+    if not barcode:
+        return WriteOutcome(
+            status=StockWriteStatus.FAILED,
+            applied_live=False,
+            error="Bu SKU da shtrix kod yo'q — Uzum yangilashni shtrix kod "
+            "bo'yicha qiladi",
+        )
+
     built = await _write_client_for(shop_id)
     if built is None:
         return WriteOutcome(
@@ -129,7 +160,8 @@ async def _do_write(shop_id: int, *, sku: str, new_qty: int) -> WriteOutcome:
 
     try:
         await client.set_fbs_stock(
-            uzum_shop_id, [StockUpdate(sku_id=sku, amount=new_qty)]
+            uzum_shop_id,
+            [StockUpdate(barcode=barcode, amount=new_qty, sku_id=sku)],
         )
     except WritesDisabledError:
         # Himoya bayrog'i o'chiq — bu xato emas, demo

@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.db.base import session_scope
 from app.db.models import (
     AuthType,
+    Product,
     Shop,
     ShopCredential,
     StockWriteLog,
@@ -20,9 +21,18 @@ from app.db.models import (
 )
 from app.services.stock_write import apply_change, log_cancelled
 
+#: Sinovdagi SKU va uning shtrix kodi. Uzum qoldiqni aynan shtrix kod
+#: bo'yicha yangilaydi, shuning uchun mahsulot ham yaratiladi.
+SKU = "763221"
+BARCODE = "1000113258397"
+
 
 async def _seed_shop(
-    *, telegram_id: int = 555, uzum_shop_id: str = "7973", with_cred: bool = True
+    *,
+    telegram_id: int = 555,
+    uzum_shop_id: str = "7973",
+    with_cred: bool = True,
+    with_barcode: bool = True,
 ) -> int:
     async with session_scope() as session:
         user = User(telegram_id=telegram_id)
@@ -32,6 +42,15 @@ async def _seed_shop(
         shop = Shop(user_id=user.id, uzum_shop_id=uzum_shop_id, is_active=True)
         session.add(shop)
         await session.flush()
+
+        session.add(
+            Product(
+                shop_id=shop.id,
+                sku=SKU,
+                barcode=BARCODE if with_barcode else None,
+                title="Sinov tovari",
+            )
+        )
 
         if with_cred:
             cred = ShopCredential(
@@ -54,7 +73,7 @@ class TestApplyChange:
         shop_id = await _seed_shop(telegram_id=555)
 
         outcome = await apply_change(
-            shop_id, telegram_id=555, sku="763221", old_qty=12, new_qty=30
+            shop_id, telegram_id=555, sku=SKU, old_qty=12, new_qty=30
         )
 
         assert outcome.status is StockWriteStatus.DEMO
@@ -95,3 +114,21 @@ class TestApplyChange:
         assert len(logs) == 1
         assert logs[0].status is StockWriteStatus.CANCELLED
         assert logs[0].new_qty == 10
+
+    async def test_without_barcode_fails_with_reason(self) -> None:
+        """Shtrix kodsiz yozib bo'lmaydi — Uzum aynan shu bo'yicha yangilaydi.
+
+        Sababi ochiq aytiladi: jim yutilsa, seller nega ishlamaganini
+        bilmasdi (CLAUDE.md qoida #4).
+        """
+        shop_id = await _seed_shop(telegram_id=888, with_barcode=False)
+
+        outcome = await apply_change(
+            shop_id, telegram_id=888, sku=SKU, old_qty=1, new_qty=7
+        )
+
+        assert outcome.status is StockWriteStatus.FAILED
+        assert "shtrix kod" in (outcome.error or "").lower()
+
+        logs = await _logs()
+        assert len(logs) == 1 and logs[0].status is StockWriteStatus.FAILED

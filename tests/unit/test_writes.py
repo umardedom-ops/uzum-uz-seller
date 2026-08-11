@@ -10,6 +10,7 @@ import pytest
 
 from app.uzum.models import AuthType, SessionCredentials
 from app.uzum.writes import (
+    MissingBarcodeError,
     StockUpdate,
     UzumWriteClient,
     WritesDisabledError,
@@ -37,16 +38,39 @@ def _client(http: _SpyHTTP) -> UzumWriteClient:
 
 
 class TestPayload:
-    def test_shape_matches_response_schema(self) -> None:
+    def test_shape_matches_openapi_spec(self) -> None:
+        """Sxema spetsifikatsiyadan (2026-08-11) — taxmin emas.
+
+        `SkuStockUpdateApiRequestDto`: `skuAmountList` ichida `barcode`
+        (majburiy) va `amount`. `skuId` yuborilmaydi — u ixtiyoriy.
+        """
         payload = _build_stock_payload(
-            [StockUpdate("763221", 30), StockUpdate("9", 0)]
+            [
+                StockUpdate(barcode="1000113258397", amount=30, sku_id="763221"),
+                StockUpdate(barcode="1000113258398", amount=0),
+            ]
         )
         assert payload == {
-            "skus": [
-                {"skuId": "763221", "amount": 30},
-                {"skuId": "9", "amount": 0},
+            "skuAmountList": [
+                {"barcode": "1000113258397", "amount": 30},
+                {"barcode": "1000113258398", "amount": 0},
             ]
         }
+
+
+class TestValidation:
+    def test_barcode_required(self) -> None:
+        """Shtrix kodsiz — darhol to'xtaymiz (Uzum jimgina rad etardi)."""
+        with pytest.raises(MissingBarcodeError):
+            StockUpdate(barcode="", amount=5, sku_id="763221")
+
+    def test_negative_amount_rejected(self) -> None:
+        with pytest.raises(ValueError):
+            StockUpdate(barcode="1000113258397", amount=-1)
+
+    def test_zero_is_allowed(self) -> None:
+        """0 — haqiqiy qiymat (tovar tugadi), xato emas."""
+        assert StockUpdate(barcode="1000113258397", amount=0).amount == 0
 
 
 class TestGuard:
@@ -54,7 +78,9 @@ class TestGuard:
         """Standart holatda bayroq o'chiq — jonli yozish bo'lmaydi."""
         http = _SpyHTTP()
         with pytest.raises(WritesDisabledError):
-            await _client(http).set_fbs_stock("7973", [StockUpdate("1", 5)])
+            await _client(http).set_fbs_stock(
+                "7973", [StockUpdate(barcode="1000113258397", amount=5)]
+            )
         assert http.calls == []
 
     async def test_empty_updates_is_noop(self) -> None:
@@ -71,12 +97,16 @@ class TestGuard:
 
         monkeypatch.setattr("app.uzum.writes.get_settings", lambda: _Settings())
 
-        await _client(http).set_fbs_stock("7973", [StockUpdate("763221", 30)])
+        await _client(http).set_fbs_stock(
+            "7973", [StockUpdate(barcode="1000113258397", amount=30, sku_id="763221")]
+        )
 
         assert len(http.calls) == 1
         call = http.calls[0]
         assert call["path"] == "/v2/fbs/sku/stocks"
         assert call["rate_key"] == "7973"
-        assert call["json"] == {"skus": [{"skuId": "763221", "amount": 30}]}
+        assert call["json"] == {
+            "skuAmountList": [{"barcode": "1000113258397", "amount": 30}]
+        }
         # Bearer prefiksisiz (docs/api-inventory.md §1)
         assert call["headers"]["Authorization"] == "tok"

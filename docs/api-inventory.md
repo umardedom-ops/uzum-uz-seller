@@ -204,6 +204,50 @@ ARCHIVED, REJECTED, PARTIALLY_ACCEPTED, SENT, CANCELED`.
 > Probe paytida ketma-ket so'rovlar **429** berdi — Uzum rate limitni
 > qattiq ushlaydi. Har so'rov orasida ~3 soniya kerak bo'ldi.
 
+## 5-quinquies. ⭐ YOZISH ENDPOINTLARI (2026-08-11 da spetsifikatsiyadan)
+
+> **OpenAPI spetsifikatsiyasi API kalit bilan ochiladi:**
+> `GET /swagger/api-docs` + `Authorization: <TOKEN>` → 274 KB JSON.
+> Brauzerda `RBAC: access denied` chiqadi, lekin **kalit bilan ishlaydi**.
+> Kelajakda body kerak bo'lsa — taxmin qilmang, shu yerdan oling.
+
+### `POST /v2/fbs/sku/stocks` — FBS qoldig'ini yangilash
+
+`SkuStockUpdateApiRequestDto`:
+
+```json
+{ "skuAmountList": [ { "barcode": "...", "amount": 10 } ] }
+```
+
+`RestSellerSkuFbsAmountDto` maydonlari:
+
+| Maydon | Tur | Izoh |
+|---|---|---|
+| **`barcode`** | string | ⭐ **MAJBURIY** — yangilash aynan shu bo'yicha ketadi |
+| **`amount`** | integer | FBS qoldig'i (mutlaq qiymat) |
+| `skuId` | integer | ixtiyoriy |
+| `skuTitle`, `productTitle` | string | ixtiyoriy |
+| `fbsLinked`, `dbsLinked` | boolean | sxemaga bog'lanish |
+
+⚠️ **Diqqat:** identifikator — `skuId` EMAS, **`barcode`**. Taxminiy
+`{"skus": [{"skuId": ...}]}` shakli ishlamaydi (validation-failed).
+
+### Boshqa yozish endpointlari
+
+| Endpoint | Nima qiladi |
+|---|---|
+| `POST /v1/product/{shopId}/sendPriceData` | narxlarni o'zgartirish |
+| `POST /v1/product/shop/{shopId}/barcodes/print` | **SKU yorliqlarini chop etish** |
+| `POST /v1/fbs/invoice` | yuk xati yaratish |
+| `POST /v1/fbs/invoice/{id}/update-content` | yuk xati tarkibini o'zgartirish |
+| `POST /v1/fbs/invoice/{id}/cancel` | yuk xatini bekor qilish |
+| `POST /v1/fbs/order/{id}/confirm` · `/cancel` | buyurtmani tasdiqlash/bekor qilish |
+| `POST /v1/fbs/order/{id}/identifier` | tovarlarga identifikator bog'lash |
+| `POST /v1/dbs/order/{id}/delivering` · `/completed` · `/refund` | DBS oqimi |
+
+> ❗ **Aksiya (promo/aksiyalar) endpointi API'da YO'Q.** Raqobatchidagi
+> «Aksiyalar» bo'limi boshqa (kabinet ichki) API orqali ishlaydi.
+
 ## 6. ❗ Hal qilinmagan: test ma'lumoti yo'q
 
 Sinov do'koni (Elore Parfume) **bo'sh**: 1 ta mahsulot, 0 sotuv, 0 qoldiq,

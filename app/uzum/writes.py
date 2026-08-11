@@ -4,16 +4,20 @@ Bu modul `app/uzum/api_client.py` (o'qish) dan alohida turadi va uni
 audit/sync kodi **import qilmaydi**. Shunda "audit faqat GET" kafolati
 kodda ko'rinib turadi (CLAUDE.md qoida #1).
 
-Ikki qatlamli himoya:
+Himoya: **enable-flag** (`settings.uzum_writes_enabled`, standart O'CHIQ).
+Yoqilmasa `WritesDisabledError` ko'tariladi — servis buni ushlab, demo
+rejimda davom etadi (foydalanuvchiga "hali jonli emas" deb aytiladi).
 
-1. **Enable-flag** (`settings.uzum_writes_enabled`, standart O'CHIQ). Yoqilmasa
-   `WritesDisabledError` ko'tariladi — servis buni ushlab, demo rejimda
-   davom etadi (foydalanuvchiga "hali jonli emas" deb aytiladi).
-2. **Body tasdig'i.** `POST /v2/fbs/sku/stocks` so'rov TANASI hali
-   Swagger'dan tasdiqlanmagan (docs/api-inventory.md §7 endpointni sanaydi,
-   tanasini emas). `_build_stock_payload` dagi sxema — TAXMIN, javob
-   sxemasi `SkuAmountApiResponseDto` (skuId, amount) asosida. Jonli
-   yoqishdan oldin Swagger yoki bitta ehtiyot sinov bilan tekshiring.
+✅ **So'rov tanasi tasdiqlangan** (2026-08-11, OpenAPI spetsifikatsiyasidan —
+`docs/api-inventory.md` §5-quinquies):
+
+```json
+{ "skuAmountList": [ { "barcode": "...", "amount": 10 } ] }
+```
+
+⚠️ Identifikator — **`barcode`**, `skuId` EMAS. `skuId` ixtiyoriy, `barcode`
+majburiy. Ilgari bu yerda taxminiy `{"skus": [{"skuId": ...}]}` turgan edi —
+u ishlamasdi (`validation-failed-001`).
 """
 from __future__ import annotations
 
@@ -34,23 +38,44 @@ class WritesDisabledError(RuntimeError):
     """
 
 
+class MissingBarcodeError(ValueError):
+    """Shtrix kodsiz yozib bo'lmaydi.
+
+    Uzum yangilashni aynan `barcode` bo'yicha qiladi. Shtrix kod bo'lmasa
+    so'rov jimgina rad etiladi — shuning uchun oldindan to'xtatamiz.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class StockUpdate:
-    """Bitta SKU uchun yangi FBS qoldig'i (mutlaq qiymat, farq emas)."""
+    """Bitta SKU uchun yangi FBS qoldig'i (mutlaq qiymat, farq emas).
 
-    sku_id: str
+    `barcode` — Uzum talab qiladigan majburiy identifikator.
+    `sku_id` faqat jurnal va xabarlar uchun (API'da ixtiyoriy).
+    """
+
+    barcode: str
     amount: int
+    sku_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.barcode:
+            raise MissingBarcodeError(
+                f"SKU {self.sku_id or '?'}: shtrix kod yo'q, yozib bo'lmaydi"
+            )
+        if self.amount < 0:
+            raise ValueError("Qoldiq manfiy bo'la olmaydi")
 
 
 def _build_stock_payload(updates: list[StockUpdate]) -> dict:
-    """⚠️ TAXMINIY body. Swagger'dan tasdiqlang (writes.py yuqori izohi).
+    """Spetsifikatsiyadagi `SkuStockUpdateApiRequestDto`.
 
-    Javob sxemasi `SkuAmountApiResponseDto` (skuId, amount) — so'rov ham
-    shunga o'xshash bo'lishi kutiladi. Tasdiqlangач shu bitta funksiya
-    to'g'rilanadi, qolgani o'zgarmaydi.
+    Tasdiqlangan (2026-08-11): `skuAmountList` ichida `barcode` + `amount`.
     """
     return {
-        "skus": [{"skuId": u.sku_id, "amount": u.amount} for u in updates]
+        "skuAmountList": [
+            {"barcode": u.barcode, "amount": u.amount} for u in updates
+        ]
     }
 
 
