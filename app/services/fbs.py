@@ -172,6 +172,68 @@ async def download_label(
     return path
 
 
+#: `/v1/fbs/invoice` qabul qiladigan YAGONA statuslar (2026-08-11 da jonli
+#: aniqlangan — docs/api-inventory.md §5-quater). Boshqasi `400` beradi.
+#: ⚠️ `CANCELLED` ikkita L bilan; buyurtma endpointida esa bitta L.
+INVOICE_STATUSES = ("CREATED", "ACCEPTED", "CANCELLED")
+
+
+@dataclass(frozen=True, slots=True)
+class FbsInvoice:
+    invoice_id: int
+    number: str | None
+    status: str | None
+    created_at: str | None
+    accepted_at: str | None
+
+    @property
+    def label(self) -> str:
+        parts = [f"№{self.number or self.invoice_id}"]
+        if self.created_at:
+            parts.append(self.created_at)
+        if self.status:
+            parts.append(self.status)
+        return " · ".join(parts)
+
+
+def _map_invoice(raw: dict) -> FbsInvoice:
+    created = raw.get("dateCreated") or raw.get("date")
+    accepted = raw.get("dateAccepted")
+    c_dt = ms_to_dt(created) if isinstance(created, int | float) else None
+    a_dt = ms_to_dt(accepted) if isinstance(accepted, int | float) else None
+
+    return FbsInvoice(
+        invoice_id=as_int(raw.get("id") or raw.get("invoiceId")),
+        number=as_str(raw.get("invoiceNumber") or raw.get("externalNumber")),
+        status=as_str(raw.get("status") or raw.get("invoiceStatus")),
+        created_at=f"{c_dt:%d.%m.%Y}" if c_dt else as_str(created),
+        accepted_at=f"{a_dt:%d.%m.%Y}" if a_dt else as_str(accepted),
+    )
+
+
+async def list_invoices(shop_id: int) -> list[FbsInvoice]:
+    """FBS yuk xatlari — ta'minlash va qabul aktlari shulardan olinadi.
+
+    Uzum javob bermasa `FbsUnavailableError` — "akt yo'q" deb ko'rsatmaymiz.
+    """
+    built = await _client_for(shop_id)
+    if built is None:
+        return []
+    http, client, uzum_shop_id = built
+
+    try:
+        raw = await client.get_fbs_invoices(uzum_shop_id, list(INVOICE_STATUSES))
+    except Exception as exc:
+        log.exception("FBS aktlarini olishda xato: shop_id=%s", shop_id)
+        raise FbsUnavailableError(str(exc)) from exc
+    finally:
+        await http.aclose()
+
+    invoices = [_map_invoice(item) for item in raw]
+    unique = {inv.invoice_id: inv for inv in invoices if inv.invoice_id}
+    return sorted(unique.values(), key=lambda i: i.invoice_id, reverse=True)
+
+
 async def download_invoice_document(
     shop_id: int, invoice_id: int, *, closing: bool = False, out_dir: Path | None = None
 ) -> Path | None:

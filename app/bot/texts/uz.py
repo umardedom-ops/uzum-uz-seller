@@ -335,6 +335,22 @@ TEXTS: dict[str, str] = {
         "⚠️ Yorliqlarni yig'a olmadim. Buyurtmalarni qayta oching yoki "
         "yorliqlarni bittalab yuklab ko'ring."
     ),
+    # --- Aktlar (FBS yuk xatlari) ---
+    "btn_acts": "📑 Aktlar",
+    "acts_header": "📑 <b>FBS yuk xatlari</b> — {count} ta",
+    "acts_empty": (
+        "📑 FBS yuk xati topilmadi.\n\n"
+        "Aktlar FBS sxemasida ishlaydi — tovarni o'zingiz jo'natganingizda "
+        "paydo bo'ladi. FBO do'konda yuk xatlari bo'lmaydi."
+    ),
+    "btn_act_supply": "📄 №{invoice} ta'minlash",
+    "btn_act_accept": "📥 Qabul akti",
+    "act_caption_supply": "📄 №{invoice} — ta'minlash akti",
+    "act_caption_accept": "📥 №{invoice} — qabul akti",
+    "act_failed": (
+        "⚠️ №{invoice} akti yuklanmadi. Uzum uni hali tayyorlamagan "
+        "bo'lishi mumkin — birozdan keyin urinib ko'ring."
+    ),
     "fbs_label_failed": (
         "❌ №{order} yorlig'ini olib bo'lmadi.\n\n"
         "Buyurtma holati o'zgargan bo'lishi mumkin. Birozdan so'ng urinib ko'ring."

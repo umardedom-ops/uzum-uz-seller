@@ -181,6 +181,29 @@ totalAccepted ⭐ — omborga qabul qilingan miqdor (5.1 dagi `qabul`)
 totalToStock  ⭐
 ```
 
+## 5-quater. FBS akt statuslari (2026-08-11 da jonli aniqlangan)
+
+`GET /v1/fbs/invoice` da **`statuses` majburiy** — bermasangiz `400`.
+Uzum hujjatida ro'yxat yo'q, shuning uchun empirik topildi: noto'g'ri
+status **400**, to'g'risi **200** qaytaradi.
+
+**Yagona to'g'ri qiymatlar:**
+
+```
+CREATED · ACCEPTED · CANCELLED
+```
+
+⚠️ `CANCELLED` — **ikkita L bilan**. `CANCELED` (bitta L) 400 beradi,
+holbuki buyurtma endpointida (`/v2/fbs/orders`) bitta L ishlatiladi.
+Ikki endpoint ikki xil yozadi — adashtirmang.
+
+Rad etilganlar (400): `NEW, DRAFT, PACKING, CONFIRMED, SHIPPED, PENDING,
+PROCESSING, IN_TRANSIT, DELIVERED, COMPLETED, CLOSED, FINISHED,
+ARCHIVED, REJECTED, PARTIALLY_ACCEPTED, SENT, CANCELED`.
+
+> Probe paytida ketma-ket so'rovlar **429** berdi — Uzum rate limitni
+> qattiq ushlaydi. Har so'rov orasida ~3 soniya kerak bo'ldi.
+
 ## 6. ❗ Hal qilinmagan: test ma'lumoti yo'q
 
 Sinov do'koni (Elore Parfume) **bo'sh**: 1 ta mahsulot, 0 sotuv, 0 qoldiq,

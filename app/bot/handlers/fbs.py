@@ -73,6 +73,9 @@ def _orders_kb(orders: list[fbs.FbsOrder], lang: str) -> InlineKeyboardMarkup:
                 )
             ]
         )
+    rows.append(
+        [InlineKeyboardButton(text=t("btn_acts", lang), callback_data="fbs:invoices")]
+    )
     rows += [
         [
             InlineKeyboardButton(
@@ -139,6 +142,84 @@ async def on_all_labels(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.message.answer_document(
         FSInputFile(path), caption=t("fbs_all_labels_caption", lang)
     )
+
+
+async def _shop_id(cb: CallbackQuery, state: FSMContext) -> int | None:
+    """Joriy do'kon — FSM'da bo'lmasa bazadan (restartdan keyin ham ishlasin)."""
+    data = await state.get_data()
+    shop_id = data.get("shop_id")
+    if shop_id is not None:
+        return int(shop_id)
+    shop = await find_user_shop(cb.from_user.id)
+    return shop.id if shop else None
+
+
+@router.callback_query(F.data == "fbs:invoices")
+async def on_invoices(cb: CallbackQuery, state: FSMContext) -> None:
+    """FBS yuk xatlari ro'yxati — har biriga ikkita akt tugmasi."""
+    lang = await _lang(state)
+    shop_id = await _shop_id(cb, state)
+    if shop_id is None:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+
+    await cb.answer()
+    try:
+        invoices = await fbs.list_invoices(shop_id)
+    except fbs.FbsUnavailableError:
+        await cb.message.answer(t("fbs_unavailable", lang))
+        return
+
+    if not invoices:
+        await cb.message.answer(t("acts_empty", lang))
+        return
+
+    shown = invoices[:PAGE_SIZE]
+    rows = [
+        [
+            InlineKeyboardButton(
+                text=t("btn_act_supply", lang, invoice=inv.invoice_id),
+                callback_data=f"fbs:act:{inv.invoice_id}",
+            ),
+            InlineKeyboardButton(
+                text=t("btn_act_accept", lang),
+                callback_data=f"fbs:actc:{inv.invoice_id}",
+            ),
+        ]
+        for inv in shown
+    ]
+
+    text = t("acts_header", lang, count=len(invoices)) + "\n\n" + "\n".join(
+        f"• {inv.label}" for inv in shown
+    )
+    await cb.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@router.callback_query(F.data.startswith(("fbs:act:", "fbs:actc:")))
+async def on_act(cb: CallbackQuery, state: FSMContext) -> None:
+    """Ta'minlash akti (`fbs:act:`) yoki qabul akti (`fbs:actc:`)."""
+    lang = await _lang(state)
+    closing = cb.data.startswith("fbs:actc:")
+    invoice_id = int(cb.data.rsplit(":", 1)[1])
+
+    shop_id = await _shop_id(cb, state)
+    if shop_id is None:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+
+    await cb.answer(t("fbs_preparing", lang))
+    path = await fbs.download_invoice_document(shop_id, invoice_id, closing=closing)
+
+    if path is None:
+        await cb.message.answer(t("act_failed", lang, invoice=invoice_id))
+        return
+
+    caption = t(
+        "act_caption_accept" if closing else "act_caption_supply",
+        lang,
+        invoice=invoice_id,
+    )
+    await cb.message.answer_document(FSInputFile(path), caption=caption)
 
 
 async def _lang(state: FSMContext) -> str:
