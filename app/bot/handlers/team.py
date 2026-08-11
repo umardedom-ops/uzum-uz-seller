@@ -193,6 +193,43 @@ async def on_channel_unlink(cb: CallbackQuery, state: FSMContext) -> None:
         await cb.message.edit_reply_markup(reply_markup=None)
 
 
+@router.callback_query(F.data == "team:kabinet")
+async def on_kabinet_button(cb: CallbackQuery, state: FSMContext) -> None:
+    """Sozlamalardagi tugma — buyruq bilan bir xil havola beradi."""
+    await cb.answer()
+    await cmd_kabinet(cb.message, state, telegram_id=cb.from_user.id)
+
+
+@router.message(Command("kabinet", "web"))
+async def cmd_kabinet(
+    message: Message, state: FSMContext, telegram_id: int | None = None
+) -> None:
+    """Web-kabinetga bir martalik kirish havolasi.
+
+    Havola 15 daqiqa yashaydi va **bir marta** ishlaydi — ochilgach
+    darhol kuydiriladi va brauzerga cookie beriladi. Shuning uchun
+    havola chatda qolib ketsa ham xavf tug'dirmaydi.
+    """
+    from app.core.config import get_settings
+    from app.services import web_auth
+
+    lang = await _lang(state)
+    # Tugmadan chaqirilganda `message` — botniki, shuning uchun kim
+    # so'raganini alohida uzatamiz.
+    who = telegram_id if telegram_id is not None else message.from_user.id
+
+    base = get_settings().click_base_url.rstrip("/")
+    if not base:
+        await message.answer(t("kabinet_no_url", lang))
+        return
+
+    token = await web_auth.issue_login_token(who)
+    await message.answer(
+        t("kabinet_link", lang, url=f"{base}/kabinet/kirish?token={token}"),
+        disable_web_page_preview=True,
+    )
+
+
 @router.message(Command("ulash", "link"))
 async def cmd_link_channel(message: Message, state: FSMContext) -> None:
     """Guruh/kanalda yoziladi — o'sha chatni do'konga ulaydi.

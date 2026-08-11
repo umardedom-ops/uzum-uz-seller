@@ -208,6 +208,12 @@ async def on_settings(message: Message, state: FSMContext) -> None:
                 ],
                 [
                     InlineKeyboardButton(
+                        text=t("settings_btn_kabinet", lang),
+                        callback_data="team:kabinet",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
                         text=t("settings_btn_lang", lang),
                         callback_data="settings:lang",
                     )

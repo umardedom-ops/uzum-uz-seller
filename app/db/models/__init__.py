@@ -35,6 +35,7 @@ from app.db.models.system import (
 )
 from app.db.models.team import ReportChannel, ShopStaff, StaffRole
 from app.db.models.user import Lang, Plan, Subscription, SubscriptionStatus, User
+from app.db.models.web import TokenKind, WebToken
 
 __all__ = [
     "AlertConfig",
@@ -72,5 +73,7 @@ __all__ = [
     "SubscriptionStatus",
     "SyncRun",
     "SyncStatus",
+    "TokenKind",
     "User",
+    "WebToken",
 ]

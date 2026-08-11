@@ -180,8 +180,13 @@ def create_app() -> FastAPI:
     settings = get_settings()
     setup_logging(settings.log_level)
 
-    application = FastAPI(title="Uzum Seller Bot — Click webhook", docs_url=None)
+    application = FastAPI(title="Uzum Seller Bot", docs_url=None)
     application.include_router(router)
+
+    # Web-kabinet — seller do'konini brauzerda ko'radi
+    from app.web.kabinet import router as kabinet_router
+
+    application.include_router(kabinet_router)
 
     @application.get("/health")
     async def health() -> dict[str, str]:

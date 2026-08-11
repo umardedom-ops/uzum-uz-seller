@@ -545,6 +545,19 @@ TEXTS: dict[str, str] = {
     "channel_not_owner": (
         "❌ Ulab bo'lmadi — do'kon egasi <b>siz emassiz</b>."
     ),
+    # --- Web-kabinet ---
+    "settings_btn_kabinet": "🖥 Web-kabinet",
+    "kabinet_link": (
+        "🖥 <b>Web-kabinet</b>\n\n"
+        "{url}\n\n"
+        "<blockquote>🔒 Havola <b>15 daqiqa</b> amal qiladi va <b>bir marta</b> "
+        "ishlatiladi. Ochilgach brauzeringizga xavfsiz kirish beriladi — "
+        "havolani boshqa hech kim ishlata olmaydi.</blockquote>"
+    ),
+    "kabinet_no_url": (
+        "⚙️ Web-kabinet manzili hali sozlanmagan.\n\n"
+        "Administrator <code>CLICK_BASE_URL</code> ni to'ldirishi kerak."
+    ),
     "not_ready": (
         "🚧 Bu bo'lim hali tayyorlanmoqda.\n\n"
         "Ma'lumotlaringiz yig'ilgach ishga tushadi."
