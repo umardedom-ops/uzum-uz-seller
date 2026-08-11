@@ -168,6 +168,11 @@ async def send_daily_reports() -> int:
     if not targets:
         return 0
 
+    # Guruh/kanalga ham yuboriladi — jamoa bilan ishlaydigan seller uchun
+    from app.services import team
+
+    channels = await team.channels_for_shops([shop_id for shop_id, _, _ in targets])
+
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -184,6 +189,20 @@ async def send_daily_reports() -> int:
                 sent += 1
             except Exception:
                 log.exception("Kunlik hisobot yuborilmadi: shop_id=%s", shop_id)
+                continue
+
+            # Kanalning xatosi (bot chiqarilgan, huquq yo'q) egaga
+            # yuborilgan hisobotni bekor qilmasin — alohida try.
+            for chat_id in channels.get(shop_id, []):
+                try:
+                    await bot.send_message(chat_id, text)
+                    sent += 1
+                except Exception:
+                    log.exception(
+                        "Kanalga hisobot yuborilmadi: shop=%s chat=%s",
+                        shop_id,
+                        chat_id,
+                    )
     finally:
         await bot.session.close()
 

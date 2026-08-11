@@ -505,6 +505,46 @@ TEXTS: dict[str, str] = {
         "barcha hisobotlar o'sha do'kon bo'yicha ko'rsatiladi."
     ),
     "shops_changed": "✅ Joriy do'kon: {title}",
+    # --- Jamoa: hodimlar ---
+    "settings_btn_staff": "👤 Hodimlar",
+    "settings_btn_channels": "📢 Guruh/kanal",
+    "staff_header": "👤 <b>Hodimlar</b> · {shop}",
+    "staff_empty": "Hozircha hodim yo'q.",
+    "staff_add_btn": "➕ Hodim qo'shish",
+    "staff_remove_btn": "🗑 {who} — o'chirish",
+    "staff_ask_id": (
+        "👤 <b>Hodimning Telegram ID sini yuboring.</b>\n\n"
+        "Hodim botga <code>/id</code> yozsa, o'z ID sini ko'radi va sizga "
+        "yuboradi.\n\n"
+        "<blockquote>🔒 Hodim faqat hisobot va qoldiqni ko'radi. To'lov, "
+        "tarif va hodim boshqaruvi <b>faqat sizda</b> qoladi.</blockquote>"
+    ),
+    "staff_bad_id": "❌ Bu ID ga o'xshamaydi. Faqat raqam yuboring.",
+    "staff_added": "✅ Hodim qo'shildi: <code>{who}</code>",
+    "staff_removed": "🗑 Hodim o'chirildi.",
+    "staff_add_failed": (
+        "❌ Bajarilmadi. Do'kon sizniki emas yoki o'zingizni qo'shyapsiz."
+    ),
+    # --- Jamoa: guruh/kanal ---
+    "channels_header": "📢 <b>Guruh va kanallar</b>",
+    "channels_empty": "Hozircha ulanmagan.",
+    "channels_howto": (
+        "<blockquote>➕ <b>Qanday ulash:</b>\n"
+        "1. Botni guruh yoki kanalga qo'shing\n"
+        "2. Unga xabar yuborish huquqini bering\n"
+        "3. O'sha yerda <code>/ulash</code> deb yozing\n\n"
+        "Kunlik hisobot o'sha yerga ham boradi.</blockquote>"
+    ),
+    "channel_unlink_btn": "🗑 {who} — uzish",
+    "channel_linked": "✅ Ulandi. Kunlik hisobot shu yerga keladi ({shop}).",
+    "channel_unlinked": "🗑 Uzildi.",
+    "channel_private": (
+        "ℹ️ Bu buyruq <b>guruh yoki kanalda</b> yoziladi.\n\n"
+        "Shaxsiy chatda hisobot allaqachon keladi."
+    ),
+    "channel_not_owner": (
+        "❌ Ulab bo'lmadi — do'kon egasi <b>siz emassiz</b>."
+    ),
     "not_ready": (
         "🚧 Bu bo'lim hali tayyorlanmoqda.\n\n"
         "Ma'lumotlaringiz yig'ilgach ishga tushadi."

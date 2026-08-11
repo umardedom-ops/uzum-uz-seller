@@ -33,6 +33,7 @@ from app.db.models.system import (
     SyncRun,
     SyncStatus,
 )
+from app.db.models.team import ReportChannel, ShopStaff, StaffRole
 from app.db.models.user import Lang, Plan, Subscription, SubscriptionStatus, User
 
 __all__ = [
@@ -57,9 +58,12 @@ __all__ = [
     "PromoRedemption",
     "Plan",
     "Product",
+    "ReportChannel",
     "Return",
     "Shop",
     "ShopCredential",
+    "ShopStaff",
+    "StaffRole",
     "StockMovement",
     "StockSnapshot",
     "StockWriteLog",

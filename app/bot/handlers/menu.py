@@ -198,6 +198,16 @@ async def on_settings(message: Message, state: FSMContext) -> None:
                 ],
                 [
                     InlineKeyboardButton(
+                        text=t("settings_btn_staff", lang),
+                        callback_data="team:staff",
+                    ),
+                    InlineKeyboardButton(
+                        text=t("settings_btn_channels", lang),
+                        callback_data="team:channels",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
                         text=t("settings_btn_lang", lang),
                         callback_data="settings:lang",
                     )

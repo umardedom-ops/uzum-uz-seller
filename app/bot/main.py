@@ -24,6 +24,7 @@ from app.bot.handlers import (
     start,
     stock,
     stock_edit,
+    team,
     top,
 )
 from app.bot.middlewares.subscription import SubscriptionMiddleware
@@ -55,6 +56,7 @@ def build_dispatcher() -> Dispatcher:
     dp.include_router(stock_edit.router)
     dp.include_router(economics.router)
     dp.include_router(top.router)
+    dp.include_router(team.router)
     dp.include_router(menu.router)
     # ❗ ENG OXIRGI: ushlanmagan matnni oladi. Undan keyin hech narsa
     # qo'shmang — aks holda u yerdagi handler hech qachon ishlamaydi.
