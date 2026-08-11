@@ -43,6 +43,11 @@ def _export_kb(lang: str) -> InlineKeyboardMarkup:
                     text=t("btn_stock_edit", lang), callback_data="stockedit:list:0"
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    text=t("btn_restock", lang), callback_data="restock:show"
+                ),
+            ],
         ]
     )
 

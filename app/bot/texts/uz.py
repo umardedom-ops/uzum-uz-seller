@@ -310,6 +310,32 @@ TEXTS: dict[str, str] = {
         "Qoldiq o'zgarmadi. Birozdan so'ng qayta urinib ko'ring."
     ),
     "stock_edit_cancelled": "🚫 Bekor qilindi. Qoldiq o'zgarmadi.",
+    "stock_edit_writing": "Yozilyapti...",
+    "stock_edit_demo_note": (
+        "🧪 Jonli yozish o'chiq — amallar faqat qayd etildi."
+    ),
+    # --- Qaytgan tovarni qoldiqqa qaytarish ---
+    "btn_restock": "↩️ Qaytgan tovarni qoldiqqa qo'shish",
+    "restock_header": (
+        "↩️ <b>Qaytgan tovarlar</b>\n\n"
+        "Omboringizga qaytgan, lekin FBS qoldig'iga <b>qo'shilmagan</b>: "
+        "<b>{count} ta tovar</b>, jami <b>{total} dona</b>."
+    ),
+    "restock_more": "…va yana {rest} ta",
+    "restock_empty": (
+        "✅ Qoldiqqa qo'shilmagan qaytarish yo'q.\n\n"
+        "Tovar omborga qabul qilingach shu yerda paydo bo'ladi."
+    ),
+    "restock_skipped": (
+        "⚠️ {count} ta tovar o'tkazib yuborildi — shtrix kodi yo'q. "
+        "Uzum qoldiqni shtrix kod bo'yicha yangilaydi."
+    ),
+    "btn_restock_apply": "✅ Qoldiqqa qo'shish",
+    "restock_done": "✅ <b>Bajarildi.</b> {ok} ta tovar qoldig'i yangilandi.",
+    "restock_failed": (
+        "⚠️ {count} tasida xato bo'ldi — ular keyingi safar qayta taklif "
+        "qilinadi."
+    ),
     # --- FBS buyurtmalar ---
     "fbs_loading": "⏳ Buyurtmalarni olyapman...",
     "fbs_header": "🏷 <b>Yig'ilishi kerak: {count} ta buyurtma</b>",

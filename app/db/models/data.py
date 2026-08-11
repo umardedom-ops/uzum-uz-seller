@@ -153,6 +153,10 @@ class Return(Base, TimestampMixin):
     # 5.2 auditining yuragi: qaytdi, lekin omborga tushdimi?
     received_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     returned_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    # Qaytgan tovar FBS qoldig'iga qo'shildimi (`services/returns_restock.py`).
+    # ❗ Shu belgisiz bir qaytarish qayta-qayta qo'shilib, qoldiq shishib
+    # ketardi — sotuvda yo'q tovar "bor" bo'lib ko'rinardi.
+    restocked_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
 
 class StockSnapshot(Base, TimestampMixin):

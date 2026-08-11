@@ -22,8 +22,10 @@ from aiogram.types import (
 )
 
 from app.bot.texts import DEFAULT_LANG, t
+from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import StockWriteStatus
+from app.services import returns_restock
 from app.services.exports import find_user_shop
 from app.services.stock_write import (
     apply_change,
@@ -212,6 +214,100 @@ async def on_cancel(cb: CallbackQuery, state: FSMContext) -> None:
             new_qty=data.get("new_qty"),
         )
     await state.set_state(None)
+    await cb.answer()
+    await cb.message.answer(t("stock_edit_cancelled", lang))
+
+
+# ---------------------------------------------------------------------- #
+# ↩️ Qaytgan tovarni qoldiqqa qaytarish
+# ---------------------------------------------------------------------- #
+
+
+@router.callback_query(F.data == "restock:show")
+async def on_restock_show(cb: CallbackQuery, state: FSMContext) -> None:
+    """Qaytgan, lekin qoldiqqa qo'shilmagan tovarlarni ko'rsatadi."""
+    lang = await _lang(state)
+    shop = await find_user_shop(cb.from_user.id)
+    if shop is None:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+
+    await cb.answer()
+    plan = await returns_restock.collect_pending(shop.id)
+
+    if not plan:
+        text = t("restock_empty", lang)
+        if plan.skipped_no_barcode:
+            text += "\n\n" + t(
+                "restock_skipped", lang, count=plan.skipped_no_barcode
+            )
+        await cb.message.answer(text)
+        return
+
+    await state.update_data(shop_id=shop.id)
+    lines = [
+        t("restock_header", lang, count=len(plan.items), total=plan.total_qty),
+        "",
+    ]
+    lines += [f"• {item.label}" for item in plan.items[:15]]
+    if len(plan.items) > 15:
+        lines.append(t("restock_more", lang, rest=len(plan.items) - 15))
+    if plan.skipped_no_barcode:
+        lines += ["", t("restock_skipped", lang, count=plan.skipped_no_barcode)]
+
+    await cb.message.answer(
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=t("btn_restock_apply", lang),
+                        callback_data="restock:apply",
+                    ),
+                    InlineKeyboardButton(
+                        text=t("btn_cancel_write", lang),
+                        callback_data="restock:cancel",
+                    ),
+                ]
+            ]
+        ),
+    )
+
+
+@router.callback_query(F.data == "restock:apply")
+async def on_restock_apply(cb: CallbackQuery, state: FSMContext) -> None:
+    """Tasdiqlandi — qoldiqqa qo'shamiz."""
+    lang = await _lang(state)
+    shop = await find_user_shop(cb.from_user.id)
+    if shop is None:
+        await cb.answer(t("no_shop", lang), show_alert=True)
+        return
+
+    await cb.answer(t("stock_edit_writing", lang))
+
+    # Rejani QAYTA yig'amiz: ekran ochilgandan beri sync o'tган bo'lishi
+    # mumkin, eski ro'yxat bilan yozsak noto'g'ri son chiqadi.
+    plan = await returns_restock.collect_pending(shop.id)
+    if not plan:
+        await cb.message.answer(t("restock_empty", lang))
+        return
+
+    ok, failed = await returns_restock.apply_plan(
+        shop.id, plan, telegram_id=cb.from_user.id
+    )
+
+    text = t("restock_done", lang, ok=ok)
+    if failed:
+        text += "\n\n" + t("restock_failed", lang, count=failed)
+    if not get_settings().uzum_writes_enabled:
+        text += "\n\n" + t("stock_edit_demo_note", lang)
+
+    await cb.message.answer(text)
+
+
+@router.callback_query(F.data == "restock:cancel")
+async def on_restock_cancel(cb: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
     await cb.answer()
     await cb.message.answer(t("stock_edit_cancelled", lang))
 
