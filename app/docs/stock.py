@@ -47,6 +47,9 @@ class StockRow:
     status: str | None
     is_blocked: bool = False
     block_reason: str | None = None
+    #: Uzumning O'Z tugash prognozi (kun). Bizning o'rtachadan ustun
+    #: turadi — u aksiya va mavsumni ham hisobga oladi.
+    forecast_days: int | None = None
 
     @property
     def total_qty(self) -> int:
@@ -54,7 +57,14 @@ class StockRow:
 
     @property
     def days_left(self) -> int | None:
-        """Qoldiq necha kunga yetadi. Sotuv tezligi noma'lum bo'lsa — None."""
+        """Qoldiq necha kunga yetadi.
+
+        Uzum o'z prognozini bergan bo'lsa — o'sha ustun (aksiya/mavsumni
+        hisobga oladi). Bo'lmasa o'rtacha sotuvdan hisoblaymiz. Ikkalasi
+        ham yo'q bo'lsa — None (soxta raqam ko'rsatmaymiz).
+        """
+        if self.forecast_days is not None and self.forecast_days >= 0:
+            return self.forecast_days
         if not self.avg_daily_sales or self.avg_daily_sales <= 0:
             return None
         return int(Decimal(self.total_qty) / self.avg_daily_sales)

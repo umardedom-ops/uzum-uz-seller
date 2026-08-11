@@ -219,6 +219,9 @@ async def load_stock_rows(shop_id: int) -> list[StockRow]:
             status=products[sku].status if sku in products else None,
             is_blocked=bool(products[sku].is_blocked) if sku in products else False,
             block_reason=products[sku].block_reason if sku in products else None,
+            forecast_days=(
+                products[sku].forecast_out_of_stock if sku in products else None
+            ),
         )
         for sku, qty in by_sku.items()
     ]

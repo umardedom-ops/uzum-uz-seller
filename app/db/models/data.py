@@ -88,6 +88,18 @@ class Product(Base, TimestampMixin):
     # Avtobidder o'rniga xavfsiz, o'qish orqali ishlaydigan signal.
     rank: Mapped[str | None] = mapped_column(String(8))
     prev_rank: Mapped[str | None] = mapped_column(String(8))
+
+    # --- Uzum bergan qo'shimcha signallar (docs/api-inventory.md §5-ter) ---
+    # Uzumning O'Z tugash prognozi (necha kun qoldi). O'zimiz hisoblagan
+    # `avg_daily_sales` dan aniqroq: u aksiya va mavsumni ham hisobga oladi.
+    forecast_out_of_stock: Mapped[int | None] = mapped_column(Integer)
+    # Bozordagi narx — o'z narximizni solishtirish uchun
+    market_price: Mapped[Decimal | None] = mapped_column(Money)
+
+    # --- Identifikatorlar (pretenziya va buxgalteriya uchun) ---
+    ikpu: Mapped[str | None] = mapped_column(String(64))
+    seller_item_code: Mapped[str | None] = mapped_column(String(128))
+    article: Mapped[str | None] = mapped_column(String(128))
     returned_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     paid_storage_amount: Mapped[Decimal | None] = mapped_column(Money)
 

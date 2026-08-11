@@ -125,6 +125,14 @@ def map_products(raw: RawRecord) -> list[dict[str, Any]]:
                 "rank": as_str((sku.get("rankInfo") or {}).get("rank")),
                 "returned_pct": money(sku.get("returnedPercentage")),
                 "paid_storage_amount": money(sku.get("paidStorageAmount")),
+                # Uzumning o'z tugash prognozi — aksiya va mavsumni ham
+                # hisobga oladi, shuning uchun bizning o'rtachadan aniqroq
+                "forecast_out_of_stock": _opt_int(sku.get("forecastOutOfStock")),
+                "market_price": money(sku.get("marketPrice")),
+                # Identifikatorlar — pretenziya va buxgalteriya uchun
+                "ikpu": as_str(sku.get("ikpu")),
+                "seller_item_code": as_str(sku.get("sellerItemCode")),
+                "article": as_str(sku.get("article")),
             }
         )
     return rows
