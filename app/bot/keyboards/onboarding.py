@@ -22,12 +22,14 @@ def lang_kb() -> InlineKeyboardMarkup:
     )
 
 
-def start_kb(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t("btn_start", lang), callback_data="start:go")]
-        ]
-    )
+# ❗ `start_kb` OLIB TASHLANDI (2026-08-11). U «🚀 Boshlash» tugmasini
+# `start:go` callback bilan chizardi, lekin bu callback uchun handler
+# YO'Q edi — bosilsa bot jim qolardi. Ustiga klaviatura hech qayerda
+# ishlatilmasdi: xush kelibsiz ekranidan keyin darhol tarif tanlash
+# keladi, oraliq tugma kerak emas.
+#
+# Bunday holat qaytmasligi uchun `tests/unit/test_buttons.py` har bir
+# `callback_data` ga handler borligini tekshiradi.
 
 
 def oferta_kb(lang: str) -> InlineKeyboardMarkup:
