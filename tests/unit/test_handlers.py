@@ -173,28 +173,29 @@ class TestOfertaStep:
 
 
 class TestAdminMenu:
-    """Admin o'z huquqini menyuda ko'rishi kerak."""
+    """Admin tugmasi menyuda BO'LMASLIGI kerak.
 
-    def test_admin_sees_extra_button(self) -> None:
+    Bot egasi mijoz oldida ekranini ochganda «👑 Admin» ko'rinib turishi
+    keraksiz savol tug'dirardi. Panel `/admin` buyrug'i bilan ochiladi.
+    """
+
+    def test_admin_button_not_in_menu(self) -> None:
         from app.bot.keyboards.menu import main_menu_kb
 
-        admin_kb = main_menu_kb("uz", is_admin=True)
-        labels = [b.text for row in admin_kb.keyboard for b in row]
-        assert "👑 Admin" in labels
-
-    def test_regular_user_does_not(self) -> None:
-        from app.bot.keyboards.menu import main_menu_kb
-
-        kb = main_menu_kb("uz", is_admin=False)
-        labels = [b.text for row in kb.keyboard for b in row]
+        labels = [b.text for row in main_menu_kb("uz").keyboard for b in row]
         assert "👑 Admin" not in labels
 
-    def test_admin_button_is_last(self) -> None:
-        """Asosiy bo'limlarni surib yubormasin."""
+    def test_admin_command_still_registered(self) -> None:
+        """Tugma yo'q, lekin buyruq ishlashi shart."""
+        from app.bot.handlers import admin
+
+        handlers = [h.callback.__name__ for h in admin.router.message.handlers]
+        assert "cmd_admin" in handlers
+
+    def test_flagship_is_first(self) -> None:
         from app.bot.keyboards.menu import main_menu_kb
 
-        kb = main_menu_kb("uz", is_admin=True)
-        assert kb.keyboard[-1][0].text == "👑 Admin"
+        kb = main_menu_kb("uz")
         assert kb.keyboard[0][0].text.endswith("Yo'qotilgan pul")
 
 

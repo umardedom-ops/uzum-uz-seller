@@ -69,10 +69,8 @@ async def on_folder_settings(message: Message, state: FSMContext) -> None:
 async def on_home(message: Message, state: FSMContext) -> None:
     """«Bosh menyu» — flagman + papkalarga qaytaradi."""
     lang = await _lang(state)
-    is_admin = await billing.is_admin(message.from_user.id)
-    await message.answer(
-        t("main_menu", lang), reply_markup=main_menu_kb(lang, is_admin=is_admin)
-    )
+    await message.answer(t("main_menu", lang), reply_markup=main_menu_kb(lang))
+
 
 #: Xabarnoma turi → matn kaliti
 _ALERT_LABELS = {
@@ -301,8 +299,7 @@ async def on_set_lang(cb: CallbackQuery, state: FSMContext) -> None:
     await svc.save_user(cb.from_user.id, lang)
 
     await cb.answer()
-    is_admin = await billing.is_admin(cb.from_user.id)
     await cb.message.answer(
         t("settings_lang_changed", lang),
-        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+        reply_markup=main_menu_kb(lang),
     )

@@ -88,5 +88,5 @@ async def _show_menu(message: Message, lang: str) -> None:
     is_admin = await billing.is_admin(message.from_user.id)
     await message.answer(
         t("main_menu_admin", lang) if is_admin else t("main_menu", lang),
-        reply_markup=main_menu_kb(lang, is_admin=is_admin),
+        reply_markup=main_menu_kb(lang),
     )

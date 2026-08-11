@@ -19,20 +19,26 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from app.bot.texts import t
 
 
-def main_menu_kb(lang: str, *, is_admin: bool = False) -> ReplyKeyboardMarkup:
-    """Bosh menyu: flagman + 3 papka. Adminlarga qo'shimcha tugma."""
-    rows = [
-        [KeyboardButton(text=t("menu_lost_money", lang))],
-        [
-            KeyboardButton(text=t("folder_analytics", lang)),
-            KeyboardButton(text=t("folder_warehouse", lang)),
-        ],
-        [KeyboardButton(text=t("folder_settings", lang))],
-    ]
-    if is_admin:
-        rows.append([KeyboardButton(text=t("menu_admin", lang))])
+def main_menu_kb(lang: str) -> ReplyKeyboardMarkup:
+    """Bosh menyu: flagman + 3 papka.
 
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+    ❗ Admin tugmasi bu yerda YO'Q va bo'lmasligi kerak. U ilgari
+    adminlarga chizilardi, lekin bot egasi mijozlar oldida ekranini
+    ochganda («👑 Admin» ko'rinib turadi) keraksiz savol tug'dirardi.
+    Panel `/admin` buyrug'i bilan ochiladi — funksiya saqlanadi, menyu
+    esa hamma uchun bir xil va toza.
+    """
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu_lost_money", lang))],
+            [
+                KeyboardButton(text=t("folder_analytics", lang)),
+                KeyboardButton(text=t("folder_warehouse", lang)),
+            ],
+            [KeyboardButton(text=t("folder_settings", lang))],
+        ],
+        resize_keyboard=True,
+    )
 
 
 def _sub_kb(rows_texts: list[list[str]], lang: str) -> ReplyKeyboardMarkup:

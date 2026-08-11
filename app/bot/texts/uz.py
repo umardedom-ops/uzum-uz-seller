@@ -119,9 +119,11 @@ TEXTS: dict[str, str] = {
     ),
     # --- Asosiy menyu ---
     "main_menu": "🏠 <b>Asosiy menyu</b>\n\nNima qilamiz?",
+    # Admin tugmasi menyuda YO'Q (mijoz oldida ko'rinmasin) — panel
+    # `/admin` buyrug'i bilan ochiladi.
     "main_menu_admin": (
         "🏠 <b>Asosiy menyu</b>\n\n"
-        "👑 Siz <b>administrator</b>siz — pastda «Admin» tugmasi bor.\n\n"
+        "👑 Siz <b>administrator</b>siz — panel: <code>/admin</code>\n\n"
         "Nima qilamiz?"
     ),
     "report_today": "Bugun",
