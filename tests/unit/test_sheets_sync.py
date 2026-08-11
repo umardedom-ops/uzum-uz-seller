@@ -53,7 +53,7 @@ class TestDisabled:
 
 
 class TestRows:
-    async def test_four_sheets_built(self) -> None:
+    async def test_all_sheets_built(self) -> None:
         from app.services import admin_report
 
         await _seed()
@@ -61,13 +61,32 @@ class TestRows:
         data = sheets_sync._rows(report)
 
         assert set(data) == {
-            SHEET_SUMMARY, SHEET_SUBSCRIBERS, SHEET_PAYMENTS, SHEET_PROMOS
+            SHEET_SUMMARY, SHEET_SUBSCRIBERS, SHEET_PAYMENTS, SHEET_PROMOS,
+            sheets_sync.SHEET_CHART,
         }
         # Sarlavha + kamida bitta qator
         assert len(data[SHEET_SUBSCRIBERS]) >= 2
         assert data[SHEET_SUBSCRIBERS][0][0] == "Telegram ID"
         assert data[SHEET_PAYMENTS][0][0] == "№"
         assert data[SHEET_PROMOS][0][0] == "Kod"
+
+    async def test_chart_sheet_shape(self) -> None:
+        """Diagramma varag'i «nom | son» bo'lishi shart — Google shuni kutadi.
+
+        Sarlavha indekslari `_ensure_charts` dagi raqamlar bilan bir xil
+        bo'lishi kerak; siljisa grafik noto'g'ri diapazonni ko'rsatadi.
+        """
+        from app.services import admin_report
+
+        await _seed()
+        rows = sheets_sync._rows(await admin_report.collect())[
+            sheets_sync.SHEET_CHART
+        ]
+
+        assert rows[0] == ["Tarif", "Kishi"]
+        assert rows[7] == ["To'lov holati", "Soni"]
+        assert rows[12] == ["Pul", "So'm"]
+        assert all(len(r) == 2 for r in rows[1:6])
 
     async def test_payment_status_included(self) -> None:
         """To'lov tasdiqlanganmi — jadvalda ko'rinishi shart."""
