@@ -29,6 +29,11 @@ services:
     volumes:
       # Excel/PDF/pretenziyalar — konteyner qayta yuklansa yo'qolmasin
       - generated:/app/generated
+      # Maxfiy kalit fayllari (Google service account JSON va h.k.).
+      # ❗ Aynan PAPKA ulanadi, fayl emas: yo'q faylni ulasak Docker uning
+      # o'rniga papka yaratib qo'yadi va sozlash jimgina buziladi.
+      # Faqat o'qish (`ro`) — konteyner kalitni o'zgartira olmaydi.
+      - ./secrets:/app/secrets:ro
 
   web:
     build: .

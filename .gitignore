@@ -11,6 +11,10 @@ venv/
 .env
 *.db
 *.sqlite3
+# Maxfiy kalit fayllari (Google service account JSON va h.k.).
+# Serverda `/opt/uzumbot/secrets/` ga qo'yiladi va konteynerga faqat
+# o'qish uchun ulanadi — git'ga hech qachon tushmasin.
+secrets/
 
 # Alembic lokal
 # (migratsiyalar saqlanadi, faqat lokal baza emas)
