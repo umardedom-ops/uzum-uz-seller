@@ -102,6 +102,48 @@ class TestCollect:
         assert "AZIKO" in by_tg[1001].shops
 
 
+class TestManagementView:
+    """Boshqaruv savollari: kim Pro, kim sinovda, bu oy nima bo'ldi."""
+
+    async def test_pro_and_trial_are_separated(self) -> None:
+        """Sinovdagi odam `effective_plan` da BASIC ko'rinadi, lekin u
+        to'lovchi EMAS — hisobda aralashib ketmasligi kerak."""
+        await _seed()
+        rep = await admin_report.collect()
+
+        assert rep.summary.pro_paid == 1      # u1 — Pro sotib olgan
+        assert rep.summary.basic_paid == 0
+        assert rep.summary.on_trial == 1      # u2 — sinovda
+        assert rep.summary.expired == 0
+
+    async def test_this_month_numbers(self) -> None:
+        await _seed()
+        rep = await admin_report.collect()
+
+        # Ikkalasi ham hozir yaratildi — ya'ni shu oyda
+        assert rep.summary.joined_this_month == 2
+        assert rep.summary.payers_this_month == 1
+        assert rep.summary.paid_this_month == Decimal("299000")
+        assert rep.summary.month_label  # "YYYY-MM"
+
+    async def test_row_marks_month_and_source(self) -> None:
+        await _seed()
+        rep = await admin_report.collect()
+        by_tg = {r.telegram_id: r for r in rep.subscribers}
+
+        assert by_tg[1001].joined_this_month
+        assert by_tg[1001].paid_this_month == Decimal("299000")
+        assert by_tg[1001].source == "to'lov"
+        # u2 promokod bilan kirgan
+        assert by_tg[1002].source == "promokod"
+
+    async def test_average_payment(self) -> None:
+        await _seed()
+        rep = await admin_report.collect()
+        assert rep.summary.paid_count == 1
+        assert rep.summary.paid_total == Decimal("299000")
+
+
 class TestExcel:
     async def test_four_sheets_with_data(self, tmp_path) -> None:
         await _seed()

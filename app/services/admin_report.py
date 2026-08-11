@@ -9,7 +9,7 @@ Bu yerda faqat O'QISH — hisobot hech narsani o'zgartirmaydi.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -18,6 +18,7 @@ from app.db.base import session_scope, utcnow
 from app.db.models import (
     Payment,
     PaymentStatus,
+    Plan,
     PromoCode,
     PromoRedemption,
     Shop,
@@ -44,6 +45,17 @@ class SubscriberRow:
     days_left: int
     promo_codes: str
     registered: str
+    #: Shu oyda qo'shilganmi — yangi mijozlar oqimini ko'rish uchun
+    joined_this_month: bool = False
+    #: Shu oyda tasdiqlangan to'lovlari yig'indisi
+    paid_this_month: Decimal = Decimal("0")
+
+    @property
+    def source(self) -> str:
+        """Qayerdan kelgan: promokod bilanmi yoki to'lovchi."""
+        if self.promo_codes:
+            return "promokod"
+        return "to'lov" if self.paid_this_month > 0 else "—"
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,12 +91,27 @@ class Summary:
     with_shop: int = 0
     active_subs: int = 0
     by_plan: dict[str, int] = field(default_factory=dict)
+    # --- Boshqaruv kesimi: kim nima ---
+    # ⚠️ `by_plan` dan farqli: sinovdagi odam `effective_plan` da BASIC
+    # bo'lib ko'rinadi (unga Basic imkoniyati beriladi), lekin biznes
+    # uchun u **to'lovchi emas**. Shuning uchun alohida sanaymiz.
+    pro_paid: int = 0        # Pro sotib olgan
+    basic_paid: int = 0      # Basic sotib olgan
+    on_trial: int = 0        # sinov muddatida, hali to'lamagan
+    expired: int = 0         # muddati tugagan
+    no_subscription: int = 0  # obunasi umuman yo'q
     paid_total: Decimal = Decimal("0")
     pending_total: Decimal = Decimal("0")
     rejected_total: Decimal = Decimal("0")
     paid_count: int = 0
     pending_count: int = 0
     promo_granted: int = 0
+    # --- Shu oy kesimida (eng ko'p so'raladigan savol) ---
+    month_label: str = ""
+    joined_this_month: int = 0
+    paid_this_month: Decimal = Decimal("0")
+    payers_this_month: int = 0
+    promo_this_month: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,9 +123,28 @@ class BusinessReport:
     generated_at: datetime
 
 
+def _month_start() -> datetime:
+    """Joriy oyning boshi — **mahalliy** vaqt bo'yicha (Asia/Tashkent).
+
+    UTC bo'yicha olsak, oy boshidagi 5 soat oldingi oyga tushib qolardi
+    va «bu oy nechta mijoz qo'shildi» raqami noto'g'ri chiqardi.
+    """
+    from zoneinfo import ZoneInfo
+
+    from app.core.config import get_settings
+
+    tz = ZoneInfo(get_settings().tz)
+    local_now = utcnow().astimezone(tz)
+    local_start = local_now.replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    return local_start.astimezone(UTC)
+
+
 async def collect() -> BusinessReport:
     """Butun biznes manzarasini bitta so'rovda yig'adi."""
     now = utcnow()
+    month_start = _month_start()
 
     async with session_scope() as session:
         users = list(await session.scalars(select(User).order_by(User.id)))
@@ -123,9 +169,28 @@ async def collect() -> BusinessReport:
         payments = list(await session.scalars(select(Payment).order_by(Payment.id)))
         user_tg = {u.id: u.telegram_id for u in users}
 
+    # Har foydalanuvchining shu oydagi tasdiqlangan to'lovi
+    paid_by_user: dict[int, Decimal] = {}
+    for pay in payments:
+        if pay.status is PaymentStatus.PAID and pay.created_at >= month_start:
+            paid_by_user[pay.user_id] = paid_by_user.get(
+                pay.user_id, Decimal("0")
+            ) + Decimal(pay.amount)
+
+    # Shu oy ishlatilgan promokodlar (kim shu oy kod bilan kirgan)
+    promo_users_this_month = {
+        red.user_id for red in redemptions if red.created_at >= month_start
+    }
+
     # --- Obunachilar ---
     subscribers: list[SubscriberRow] = []
-    summary = Summary(users=len(users))
+    summary = Summary(
+        users=len(users),
+        month_label=month_start.strftime("%Y-%m"),
+        payers_this_month=len(paid_by_user),
+        paid_this_month=sum(paid_by_user.values(), Decimal("0")),
+        promo_this_month=len(promo_users_this_month),
+    )
 
     for user in users:
         sub = subs.get(user.id)
@@ -134,7 +199,9 @@ async def collect() -> BusinessReport:
             summary.with_shop += 1
 
         plan_name, status, trial, paid_until, days = "—", "yo'q", "", "", 0
-        if sub is not None:
+        if sub is None:
+            summary.no_subscription += 1
+        else:
             plan = sub.effective_plan(now)
             plan_name = plan.value
             status = sub.status.value
@@ -142,13 +209,29 @@ async def collect() -> BusinessReport:
             paid_until = _fmt(sub.paid_until)
             deadline = sub.paid_until or sub.trial_ends_at
             days = max((deadline - now).days, 0) if deadline else 0
+
             if sub.is_active_at(now):
                 summary.active_subs += 1
                 summary.by_plan[plan_name] = summary.by_plan.get(plan_name, 0) + 1
 
+                # Boshqaruv uchun: to'lagan va sinovdagini ajratamiz
+                is_paying = sub.paid_until is not None and sub.paid_until > now
+                if is_paying and sub.plan is Plan.PRO:
+                    summary.pro_paid += 1
+                elif is_paying:
+                    summary.basic_paid += 1
+                else:
+                    summary.on_trial += 1
+            else:
+                summary.expired += 1
+
         codes = codes_by_user.get(user.id, [])
         if codes:
             summary.promo_granted += 1
+
+        joined_now = user.created_at >= month_start
+        if joined_now:
+            summary.joined_this_month += 1
 
         subscribers.append(
             SubscriberRow(
@@ -164,6 +247,8 @@ async def collect() -> BusinessReport:
                 days_left=days,
                 promo_codes=", ".join(codes),
                 registered=_fmt(user.created_at),
+                joined_this_month=joined_now,
+                paid_this_month=paid_by_user.get(user.id, Decimal("0")),
             )
         )
 

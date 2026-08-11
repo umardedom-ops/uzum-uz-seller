@@ -57,7 +57,8 @@ def _headers() -> dict[str, list[str]]:
     return {
         SHEET_SUBSCRIBERS: [
             "Telegram ID", "Username", "Ism", "Telefon", "Do'konlar", "Tarif",
-            "Holat", "Sinov tugaydi", "To'langan muddat", "Qolgan kun",
+            "Holat", "Bu oy qo'shildi", "Bu oy to'lovi", "Manba",
+            "Sinov tugaydi", "To'langan muddat", "Qolgan kun",
             "Promokod", "Ro'yxatdan o'tgan",
         ],
         SHEET_PAYMENTS: [
@@ -74,23 +75,34 @@ def _headers() -> dict[str, list[str]]:
 def _rows(report: BusinessReport) -> dict[str, list[list[object]]]:
     """Hisobotni jadval qatorlariga aylantiradi."""
     s = report.summary
+    avg = float(s.paid_total / s.paid_count) if s.paid_count else 0.0
+
     summary: list[list[object]] = [
         ["Hisobot sanasi", report.generated_at.strftime("%Y-%m-%d %H:%M UTC")],
+        [],
+        [f"BU OY ({s.month_label})", ""],
+        ["Yangi qo'shilgan", s.joined_this_month],
+        ["To'lov qilgan (kishi)", s.payers_this_month],
+        ["Bu oy tushum (so'm)", float(s.paid_this_month)],
+        ["Promokod bilan kirgan", s.promo_this_month],
+        [],
+        ["KIM QAYSI TARIFDA", ""],
+        ["Pro — to'lagan", s.pro_paid],
+        ["Basic — to'lagan", s.basic_paid],
+        ["Sinovda (hali to'lamagan)", s.on_trial],
+        ["Muddati tugagan", s.expired],
+        ["Obunasi yo'q", s.no_subscription],
         [],
         ["FOYDALANUVCHILAR", ""],
         ["Jami ro'yxatdan o'tgan", s.users],
         ["Do'kon ulagan", s.with_shop],
         ["Faol obuna", s.active_subs],
-        ["Promokod bilan kirgan", s.promo_granted],
+        ["Promokod bilan (jami)", s.promo_granted],
         [],
-        ["TARIF KESIMIDA (faol)", ""],
-    ]
-    summary += [[f"  {plan}", count] for plan, count in sorted(s.by_plan.items())]
-    summary += [
-        [],
-        ["PUL", ""],
+        ["PUL (butun davr)", ""],
         ["Tasdiqlangan tushum (so'm)", float(s.paid_total)],
         ["  to'lovlar soni", s.paid_count],
+        ["  o'rtacha to'lov", round(avg)],
         ["Kutilayotgan (tasdiqlanmagan)", float(s.pending_total)],
         ["  to'lovlar soni", s.pending_count],
         ["Rad etilgan", float(s.rejected_total)],
@@ -103,7 +115,11 @@ def _rows(report: BusinessReport) -> dict[str, list[list[object]]]:
         + [
             [
                 r.telegram_id, r.username, r.full_name, r.phone, r.shops,
-                r.plan, r.status, r.trial_ends, r.paid_until, r.days_left,
+                r.plan, r.status,
+                "ha" if r.joined_this_month else "",
+                float(r.paid_this_month) or "",
+                r.source,
+                r.trial_ends, r.paid_until, r.days_left,
                 r.promo_codes, r.registered,
             ]
             for r in report.subscribers

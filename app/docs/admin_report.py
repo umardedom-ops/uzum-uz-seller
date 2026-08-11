@@ -22,9 +22,10 @@ BAD_BG = PatternFill("solid", fgColor="FCE4E4")     # rad etilgan
 
 SUBSCRIBER_HEADERS = (
     ("Telegram ID", 14), ("Username", 18), ("Ism", 24), ("Telefon", 16),
-    ("Do'konlar", 28), ("Tarif", 10), ("Holat", 12), ("Sinov tugaydi", 18),
-    ("To'langan muddat", 18), ("Qolgan kun", 12), ("Promokod", 18),
-    ("Ro'yxatdan o'tgan", 18),
+    ("Do'konlar", 26), ("Tarif", 10), ("Holat", 12),
+    ("Bu oy qo'shildi", 15), ("Bu oy to'lovi", 15), ("Manba", 12),
+    ("Sinov tugaydi", 18), ("To'langan muddat", 18), ("Qolgan kun", 12),
+    ("Promokod", 18), ("Ro'yxatdan o'tgan", 18),
 )
 
 PAYMENT_HEADERS = (
@@ -61,27 +62,36 @@ def build_admin_excel(report: BusinessReport, path: str | Path) -> Path:
     sheet.column_dimensions["A"].width = 34
     sheet.column_dimensions["B"].width = 22
 
+    avg = float(s.paid_total / s.paid_count) if s.paid_count else 0.0
+
     rows: list[tuple[str, object]] = [
         ("Hisobot sanasi", report.generated_at.strftime("%Y-%m-%d %H:%M UTC")),
+        ("", ""),
+        (f"BU OY ({s.month_label})", ""),
+        ("Yangi qo'shilgan", s.joined_this_month),
+        ("To'lov qilgan (kishi)", s.payers_this_month),
+        ("Bu oy tushum (so'm)", float(s.paid_this_month)),
+        ("Promokod bilan kirgan", s.promo_this_month),
+        ("", ""),
+        ("KIM QAYSI TARIFDA", ""),
+        ("Pro — to'lagan", s.pro_paid),
+        ("Basic — to'lagan", s.basic_paid),
+        ("Sinovda (hali to'lamagan)", s.on_trial),
+        ("Muddati tugagan", s.expired),
+        ("Obunasi yo'q", s.no_subscription),
         ("", ""),
         ("FOYDALANUVCHILAR", ""),
         ("Jami ro'yxatdan o'tgan", s.users),
         ("Do'kon ulagan", s.with_shop),
         ("Faol obuna", s.active_subs),
-        ("Promokod bilan kirgan", s.promo_granted),
+        ("Promokod bilan (jami)", s.promo_granted),
         ("", ""),
-        ("TARIF KESIMIDA (faol)", ""),
-    ]
-    for plan, count in sorted(s.by_plan.items()):
-        rows.append((f"  {plan}", count))
-
-    rows += [
-        ("", ""),
-        ("PUL", ""),
+        ("PUL (butun davr)", ""),
         ("Tasdiqlangan tushum (so'm)", float(s.paid_total)),
-        ("  shundan to'lovlar soni", s.paid_count),
+        ("  to'lovlar soni", s.paid_count),
+        ("  o'rtacha to'lov", round(avg)),
         ("Kutilayotgan (tasdiqlanmagan)", float(s.pending_total)),
-        ("  shundan to'lovlar soni", s.pending_count),
+        ("  to'lovlar soni", s.pending_count),
         ("Rad etilgan", float(s.rejected_total)),
     ]
 
@@ -98,12 +108,21 @@ def build_admin_excel(report: BusinessReport, path: str | Path) -> Path:
         for c, value in enumerate(
             (
                 row.telegram_id, row.username, row.full_name, row.phone,
-                row.shops, row.plan, row.status, row.trial_ends,
-                row.paid_until, row.days_left, row.promo_codes, row.registered,
+                row.shops, row.plan, row.status,
+                "ha" if row.joined_this_month else "",
+                float(row.paid_this_month) or "",
+                row.source,
+                row.trial_ends, row.paid_until, row.days_left,
+                row.promo_codes, row.registered,
             ),
             start=1,
         ):
             sheet.cell(row=r, column=c, value=value)
+
+        # Bu oy qo'shilganlar ajralib tursin
+        if row.joined_this_month:
+            for c in range(1, len(SUBSCRIBER_HEADERS) + 1):
+                sheet.cell(row=r, column=c).fill = OK_BG
 
     # --- Varaq 3: To'lovlar ---
     sheet = wb.create_sheet("To'lovlar")
