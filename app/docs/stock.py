@@ -23,6 +23,9 @@ from app.docs.pdf import GRID, HEADER_BG, WARN_BG, _styles
 HEADERS = (
     ("SKU", 16),
     ("Shtrix kod", 22),
+    # Sellerning O'Z kodi — ombor xodimi aynan shu bilan ishlaydi,
+    # Uzumning SKU raqami ular uchun notanish.
+    ("Sotuvchi artikuli", 20),
     ("Tovar nomi", 46),
     ("FBO qoldiq", 12),
     ("FBS qoldiq", 12),
@@ -30,7 +33,24 @@ HEADERS = (
     ("Kunlik o'rtacha", 14),
     ("Necha kunga yetadi", 18),
     ("Narx (so'm)", 14),
+    # Bozor narxi — o'zimiznikini solishtirish uchun
+    ("Bozor narxi", 14),
     ("Holat", 20),
+)
+
+#: PDF uchun QISQARTIRILGAN ustunlar (nom, kenglik mm).
+#: Chop etilib omborga olib boriladi — 12 ustun A4 ga sig'maydi va matn
+#: o'qib bo'lmas darajada kichrayadi. Shtrix kod, jami sotilgan va
+#: kunlik o'rtacha faqat Excel'da qoladi.
+PDF_HEADERS = (
+    ("SKU", 20),
+    ("Sotuvchi artikuli", 26),
+    ("Tovar nomi", 68),
+    ("FBO", 16),
+    ("FBS", 16),
+    ("Necha kunga yetadi", 24),
+    ("Narx (so'm)", 24),
+    ("Holat", 44),
 )
 
 
@@ -50,6 +70,23 @@ class StockRow:
     #: Uzumning O'Z tugash prognozi (kun). Bizning o'rtachadan ustun
     #: turadi — u aksiya va mavsumni ham hisobga oladi.
     forecast_days: int | None = None
+    #: Sellerning ichki artikuli (`sellerItemCode` yoki `article`).
+    #: Ombor xodimi Uzum SKU raqamini emas, shuni biladi.
+    article: str = ""
+    #: Bozordagi narx — o'z narxini solishtirish uchun
+    market_price: Decimal | None = None
+
+    @property
+    def price_gap_pct(self) -> Decimal | None:
+        """Bizning narx bozordan necha foiz farq qiladi.
+
+        Musbat — bizniki qimmat, manfiy — arzon. Bozor narxi noma'lum
+        bo'lsa None (soxta raqam ko'rsatmaymiz).
+        """
+        if not self.price or not self.market_price or self.market_price <= 0:
+            return None
+        diff = (self.price - self.market_price) / self.market_price * 100
+        return diff.quantize(Decimal("0.1"))
 
     @property
     def total_qty(self) -> int:
@@ -114,6 +151,7 @@ def build_stock_excel(rows: list[StockRow], output_path: str | Path) -> Path:
         values = (
             row.sku,
             row.barcode or "—",
+            row.article or "—",
             row.title,
             row.fbo_qty,
             row.fbs_qty,
@@ -121,6 +159,7 @@ def build_stock_excel(rows: list[StockRow], output_path: str | Path) -> Path:
             float(row.avg_daily_sales) if row.avg_daily_sales else "—",
             row.days_left_label,
             float(row.price) if row.price else "—",
+            float(row.market_price) if row.market_price else "—",
             row.status_label,
         )
         for col, value in enumerate(values, start=1):
@@ -165,8 +204,11 @@ def build_stock_pdf(
     if shop_title:
         story.append(Paragraph(shop_title, styles["sub"]))
 
-    header = [h[0] for h in HEADERS]
-    widths = (20, 26, 60, 16, 16, 18, 18, 22, 22, 42)
+    # ❗ PDF Excel'dan KAMROQ ustun oladi. Excel — to'liq ma'lumot uchun,
+    # PDF esa chop etib omborga olib boriladi: 12 ustun A4 ga sig'masdi va
+    # matn o'qib bo'lmas darajada kichrayardi.
+    header = [h[0] for h in PDF_HEADERS]
+    widths = [h[1] for h in PDF_HEADERS]
 
     data = [[Paragraph(h, styles["cellHead"]) for h in header]]
     highlight: list[int] = []
@@ -178,12 +220,10 @@ def build_stock_pdf(
                 Paragraph(text, styles["cell"])
                 for text in (
                     row.sku,
-                    row.barcode or "—",
+                    row.article or "—",
                     row.title,
                     str(row.fbo_qty),
                     str(row.fbs_qty),
-                    str(row.sold_total),
-                    str(row.avg_daily_sales or "—"),
                     row.days_left_label,
                     format_money(row.price) if row.price else "—",
                     row.status_label,

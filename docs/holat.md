@@ -37,7 +37,10 @@ bilan ishlaydi.
 | **Top tovarlar** hisoboti | ✅ soni/foyda bo'yicha (`handlers/top.py`, 2026-08-09) |
 | **Barcha yorliqlar bitta PDF** | ✅ FBS'da (`services/fbs.py`, `pypdf`, 2026-08-09) |
 | **Ko'p do'kon tanlash** | ✅ Sozlamalar → Do'konlarim (`User.active_shop_id`, 2026-08-10) |
-| **Qoldiq o'zgartirish (YOZISH)** | 🧪 **demo** — oqim tayyor, jonli o'chiq (pastga qarang) |
+| **Qoldiq o'zgartirish (YOZISH)** | ✅ **JONLI** — sxema spetsifikatsiyadan, tasdiq + jurnal bilan |
+| **Qaytgan tovarni qoldiqqa qo'shish** | ✅ tasdiq bilan, har qaytarish bir marta |
+| **Hodimlar · Guruh/kanal · Web-kabinet** | ✅ jamoa fichalari (2026-08-11) |
+| **Google Sheets** | ✅ ulangan, kunlik 09:30 + `/sheets`, diagrammalar bilan |
 | **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
 
 > ⛔ **Click hozircha O'CHIRILGAN** (`CLICK_SECRET_KEY` bo'sh).

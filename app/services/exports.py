@@ -234,6 +234,16 @@ async def load_stock_rows(shop_id: int) -> list[StockRow]:
             forecast_days=(
                 products[sku].forecast_out_of_stock if sku in products else None
             ),
+            # Ombor xodimi Uzum SKU sini emas, o'z artikulini biladi.
+            # `sellerItemCode` afzal; bo'lmasa `article`.
+            article=(
+                (products[sku].seller_item_code or products[sku].article or "")
+                if sku in products
+                else ""
+            ),
+            market_price=(
+                products[sku].market_price if sku in products else None
+            ),
         )
         for sku, qty in by_sku.items()
     ]
