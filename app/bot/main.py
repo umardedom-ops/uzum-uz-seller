@@ -14,6 +14,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.bot.handlers import (
     admin,
+    apikey,
     billing,
     economics,
     fallback,
@@ -47,6 +48,7 @@ def build_dispatcher() -> Dispatcher:
 
     dp.include_router(start.router)
     dp.include_router(admin.router)
+    dp.include_router(apikey.router)
     dp.include_router(billing.router)
     # Aniq filtrli routerlar `menu` dan OLDIN turadi
     dp.include_router(money.router)

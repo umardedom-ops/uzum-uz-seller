@@ -310,6 +310,26 @@ TEXTS: dict[str, str] = {
         "Qoldiq o'zgarmadi. Birozdan so'ng qayta urinib ko'ring."
     ),
     "stock_edit_cancelled": "🚫 Bekor qilindi. Qoldiq o'zgarmadi.",
+    "stopapi_confirm": (
+        "🔌 <b>API kalitni uzasizmi?</b>\n\n"
+        "Uzilgach:\n"
+        "• sinxronizatsiya <b>to'xtaydi</b>\n"
+        "• yangi ma'lumot kelmaydi (eskisi saqlanadi)\n"
+        "• audit va hisobotlar yangilanmaydi\n\n"
+        "Qayta ulash oson: <b>yangi kalitni shu yerga yuboring</b> — "
+        "o'zim taniyman."
+    ),
+    "stopapi_yes": "🔌 Ha, uzilsin",
+    "stopapi_done": (
+        "🔌 <b>Uzildi.</b> {count} ta do'kon kaliti o'chirildi.\n\n"
+        "Ma'lumotlaringiz saqlanib qoldi. Qayta ulash uchun yangi kalitni "
+        "shu yerga yuboring."
+    ),
+    "stopapi_kept": "✅ Bekor qilindi. Kalit joyida.",
+    "stopapi_none": (
+        "ℹ️ Ulangan kalit yo'q.\n\n"
+        "Ulash uchun kalitni shu yerga yuboring yoki /start bosing."
+    ),
     "stock_edit_writing": "Yozilyapti...",
     "stock_edit_demo_note": (
         "🧪 Jonli yozish o'chiq — amallar faqat qayd etildi."

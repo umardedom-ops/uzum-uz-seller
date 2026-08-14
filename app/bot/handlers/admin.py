@@ -407,3 +407,67 @@ async def cmd_promo_off(message: Message, command: CommandObject) -> None:
 
     ok = await billing.deactivate_promo(code)
     await message.answer("⛔ Kod to'xtatildi." if ok else "❌ Bunday kod topilmadi.")
+
+
+# ---------------------------------------------------------------------- #
+# 🕵️ Yashirin buyruq — hech qaysi menyu yoki yordamda ko'rsatilmaydi
+# ---------------------------------------------------------------------- #
+
+
+@router.message(Command("admindad"))
+async def cmd_admindad(message: Message) -> None:
+    """To'liq biznes holati — matn ko'rinishida, darhol.
+
+    ❗ Bu buyruq ATAYLAB hech qayerda e'lon qilinmaydi: `/admin` panelida
+    ham, yordam matnida ham yo'q. Admin bo'lmaganga **jim** qaytadi —
+    ya'ni buyruq borligi ham bilinmaydi.
+
+    `/hisobot` dan farqi: fayl emas, ekranda darhol o'qiladigan xulosa.
+    """
+    if not await billing.is_admin(message.from_user.id):
+        return  # jim — mavjudligini oshkor qilmaymiz
+
+    report = await admin_report.collect()
+    s = report.summary
+
+    def money(value: object) -> str:
+        return f"{int(value):,}".replace(",", " ")
+
+    lines = [
+        "🕵️ <b>To'liq holat</b>",
+        "",
+        f"📅 <b>Bu oy ({s.month_label})</b>",
+        f"  Yangi qo'shilgan: <b>{s.joined_this_month}</b>",
+        f"  To'lov qilgan: <b>{s.payers_this_month}</b> kishi",
+        f"  Tushum: <b>{money(s.paid_this_month)}</b> so'm",
+        f"  Promokod bilan: <b>{s.promo_this_month}</b>",
+        "",
+        "💎 <b>Kim qaysi tarifda</b>",
+        f"  Pro (to'lagan): <b>{s.pro_paid}</b>",
+        f"  Basic (to'lagan): <b>{s.basic_paid}</b>",
+        f"  Sinovda: <b>{s.on_trial}</b>",
+        f"  Muddati tugagan: <b>{s.expired}</b>",
+        f"  Obunasiz: <b>{s.no_subscription}</b>",
+        "",
+        "💰 <b>Pul (butun davr)</b>",
+        f"  Tasdiqlangan: <b>{money(s.paid_total)}</b> so'm ({s.paid_count} ta)",
+        f"  Kutilmoqda: <b>{money(s.pending_total)}</b> so'm ({s.pending_count} ta)",
+        f"  Rad etilgan: {money(s.rejected_total)} so'm",
+        "",
+        f"👥 Jami foydalanuvchi: <b>{s.users}</b> · do'kon ulagan: <b>{s.with_shop}</b>",
+    ]
+
+    # So'nggi obunachilar — kim, telefon, tarif, to'lovi
+    recent = report.subscribers[-10:]
+    if recent:
+        lines += ["", "👤 <b>So'nggi obunachilar</b>"]
+        for row in reversed(recent):
+            who = row.full_name or row.username or str(row.telegram_id)
+            phone = row.phone or "—"
+            paid = money(row.paid_this_month) if row.paid_this_month else "—"
+            mark = "🆕 " if row.joined_this_month else ""
+            lines.append(
+                f"  {mark}<b>{who}</b> · {phone} · {row.plan} · to'lov: {paid}"
+            )
+
+    await message.answer("\n".join(lines))

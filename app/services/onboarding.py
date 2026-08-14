@@ -15,7 +15,7 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.base import session_scope
-from app.db.models import User
+from app.db.models import Shop, ShopCredential, User
 from app.db.repositories import onboarding as repo
 from app.uzum.api_client import UzumApiClient
 from app.uzum.base import UzumHTTP
@@ -231,3 +231,57 @@ def _mask(phone: str | None) -> str:
     if not phone:
         return "-"
     return f"{phone[:4]}***{phone[-2:]}" if len(phone) > 6 else "***"
+
+
+async def disconnect_api(telegram_id: int) -> int:
+    """API kalitni o'chiradi — sinxronizatsiya to'xtaydi.
+
+    Nima uchun kerak: seller istalgan payt ulanishni uza olishi kerak.
+    "Kalitni bermay turay" degan huquq — ishonchning bir qismi va uni
+    kabinetga kirmasdan, botning o'zidan qilish mumkin bo'lsin.
+
+    Kalit **butunlay o'chiriladi** (`is_valid=False` emas, qator o'chadi):
+    saqlab qo'yishning ma'nosi yo'q va shifrlangan sir bazada qolmagani
+    yaxshi. Qayta ulash uchun yangi kalit yuboriladi.
+
+    Nechta do'kon uzilganini qaytaradi.
+    """
+    async with session_scope() as session:
+        user = await session.scalar(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        if user is None:
+            return 0
+
+        shop_ids = list(
+            await session.scalars(select(Shop.id).where(Shop.user_id == user.id))
+        )
+        if not shop_ids:
+            return 0
+
+        creds = list(
+            await session.scalars(
+                select(ShopCredential).where(ShopCredential.shop_id.in_(shop_ids))
+            )
+        )
+        for cred in creds:
+            await session.delete(cred)
+
+    log.info("API kalit o'chirildi: tg_id=%s, %s ta do'kon", telegram_id, len(creds))
+    return len(creds)
+
+
+async def has_api_key(telegram_id: int) -> bool:
+    """Foydalanuvchida faol API kalit bormi."""
+    async with session_scope() as session:
+        row = await session.scalar(
+            select(ShopCredential.id)
+            .join(Shop, Shop.id == ShopCredential.shop_id)
+            .join(User, User.id == Shop.user_id)
+            .where(
+                User.telegram_id == telegram_id,
+                ShopCredential.is_valid.is_(True),
+            )
+            .limit(1)
+        )
+        return row is not None
