@@ -41,7 +41,9 @@ async def cmd_stop_api(message: Message, state: FSMContext) -> None:
     """
     lang = await _lang(state)
 
-    if not await svc.has_api_key(message.from_user.id):
+    # Kalit emas, DO'KON borligi tekshiriladi: kaliti allaqachon o'chgan,
+    # lekin ma'lumoti qolgan do'konni ham seller tozalay olsin.
+    if not await svc.has_connected_shop(message.from_user.id):
         await message.answer(t("stopapi_none", lang))
         return
 

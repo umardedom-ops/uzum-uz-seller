@@ -344,6 +344,25 @@ async def disconnect_api(telegram_id: int) -> int:
     return len(shops)
 
 
+async def has_connected_shop(telegram_id: int) -> bool:
+    """Uziladigan narsa bormi — kalit yoki bazada qolgan do'kon.
+
+    Faqat kalitni tekshirish yetmaydi: kalit boshqa yo'l bilan o'chgan
+    (yaroqsiz bo'lib qolgan, eski `/stopapi` dan qolgan) bo'lsa ham
+    do'kon va uning ma'lumoti bazada turadi. Seller uni `/stopapi`
+    orqali tozalay olishi kerak, aks holda "uzilgan, lekin qolgan"
+    do'kon abadiy qoladi.
+    """
+    async with session_scope() as session:
+        row = await session.scalar(
+            select(Shop.id)
+            .join(User, User.id == Shop.user_id)
+            .where(User.telegram_id == telegram_id)
+            .limit(1)
+        )
+        return row is not None
+
+
 async def has_api_key(telegram_id: int) -> bool:
     """Foydalanuvchida faol API kalit bormi."""
     async with session_scope() as session:

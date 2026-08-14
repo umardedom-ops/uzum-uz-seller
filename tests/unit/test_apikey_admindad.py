@@ -79,6 +79,21 @@ class TestStopApi:
         await _seed(with_cred=False)
         assert await svc.has_api_key(TG) is False
 
+    async def test_kalitsiz_dokon_ham_uziladi(self) -> None:
+        """Kaliti o'chgan, ma'lumoti qolgan do'kon ham tozalanishi kerak.
+
+        `/stopapi` handleri aynan shu tekshiruvga tayanadi — kalitga
+        qarab turgan edi va bunday do'kon bazada abadiy qolardi.
+        """
+        await _seed(with_cred=False)
+        assert await svc.has_connected_shop(TG) is True
+
+        assert await svc.disconnect_api(TG) == 1
+        assert await svc.has_connected_shop(TG) is False
+
+    async def test_nothing_to_disconnect(self) -> None:
+        assert await svc.has_connected_shop(999999) is False
+
     async def test_disconnect_removes_secret(self) -> None:
         """Kalit bazada QOLMAYDI — shifrlangan sir saqlanmasin."""
         await _seed()
