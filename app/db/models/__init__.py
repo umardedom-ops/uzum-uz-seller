@@ -24,7 +24,12 @@ from app.db.models.data import (
     StockMovement,
     StockSnapshot,
 )
-from app.db.models.shop import AuthType, Shop, ShopCredential
+from app.db.models.shop import (
+    AuthType,
+    Shop,
+    ShopCredential,
+    shop_has_valid_key,
+)
 from app.db.models.system import (
     AlertConfig,
     AlertType,
@@ -63,6 +68,7 @@ __all__ = [
     "Return",
     "Shop",
     "ShopCredential",
+    "shop_has_valid_key",
     "ShopStaff",
     "StaffRole",
     "StockMovement",

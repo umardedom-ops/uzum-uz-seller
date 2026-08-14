@@ -10,12 +10,30 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.base import session_scope
-from app.db.models import Shop, ShopCredential, User
+from app.db.models import (
+    AlertConfig,
+    Claim,
+    Compensation,
+    Discrepancy,
+    FinanceOp,
+    Order,
+    Product,
+    ReportChannel,
+    Return,
+    Shop,
+    ShopCredential,
+    ShopStaff,
+    StockMovement,
+    StockSnapshot,
+    StockWriteLog,
+    SyncRun,
+    User,
+)
 from app.db.repositories import onboarding as repo
 from app.uzum.api_client import UzumApiClient
 from app.uzum.base import UzumHTTP
@@ -233,16 +251,53 @@ def _mask(phone: str | None) -> str:
     return f"{phone[:4]}***{phone[-2:]}" if len(phone) > 6 else "***"
 
 
+#: `/stopapi` da do'kon bilan birga o'chadigan jadvallar — hammasida
+#: `shop_id` bor. Tartib bola → ota: `Discrepancy` `Claim` ga ishora
+#: qiladi, shuning uchun u avval o'chadi.
+#:
+#: DB darajasida `ondelete="CASCADE"` qo'yilgan, lekin SQLite uni faqat
+#: `PRAGMA foreign_keys=ON` bilan bajaradi — biz uni yoqmaymiz. Shuning
+#: uchun bolalarni O'ZIMIZ o'chiramiz: aks holda lokal bazada yetim
+#: qatorlar qolib, keyingi ulanishda eski ma'lumot aralashadi.
+_SHOP_OWNED_TABLES = (
+    Discrepancy,
+    Claim,
+    AlertConfig,
+    SyncRun,
+    StockWriteLog,
+    ShopStaff,
+    ReportChannel,
+    Product,
+    Order,
+    Return,
+    StockSnapshot,
+    StockMovement,
+    FinanceOp,
+    Compensation,
+    ShopCredential,
+)
+
+
 async def disconnect_api(telegram_id: int) -> int:
-    """API kalitni o'chiradi — sinxronizatsiya to'xtaydi.
+    """Do'konni butunlay uzadi: kalit ham, yig'ilgan ma'lumot ham o'chadi.
 
     Nima uchun kerak: seller istalgan payt ulanishni uza olishi kerak.
     "Kalitni bermay turay" degan huquq — ishonchning bir qismi va uni
     kabinetga kirmasdan, botning o'zidan qilish mumkin bo'lsin.
 
-    Kalit **butunlay o'chiriladi** (`is_valid=False` emas, qator o'chadi):
-    saqlab qo'yishning ma'nosi yo'q va shifrlangan sir bazada qolmagani
-    yaxshi. Qayta ulash uchun yangi kalit yuboriladi.
+    Nega faqat kalitni o'chirish yetmaydi (2026-08-14 dagi jonli xato):
+    xabarnoma, kunlik hisobot va audit Uzumdan emas, **bazadagi**
+    ma'lumotdan yasaladi. Kalit yo'q bo'lsa ham eski `Product` va
+    `StockSnapshot` qatorlari joyida turar, bot esa "tovar bloklangan"
+    deb xabar yuboraverardi — do'kon allaqachon uzilgan bo'lsa ham.
+    Do'kon o'chgach, xabar yasashga manba qolmaydi.
+
+    Qayta ulash: yangi kalit yuboriladi va **kalit qaysi do'konniki
+    bo'lsa, o'sha do'kon** ulanadi (`GET /v1/shops` javobi bo'yicha) —
+    eski do'kon qaytib kelmaydi.
+
+    Obuna va to'lov tarixi o'chmaydi — ular foydalanuvchiga bog'langan,
+    do'konga emas.
 
     Nechta do'kon uzilganini qaytaradi.
     """
@@ -253,22 +308,40 @@ async def disconnect_api(telegram_id: int) -> int:
         if user is None:
             return 0
 
-        shop_ids = list(
-            await session.scalars(select(Shop.id).where(Shop.user_id == user.id))
-        )
-        if not shop_ids:
-            return 0
-
-        creds = list(
-            await session.scalars(
-                select(ShopCredential).where(ShopCredential.shop_id.in_(shop_ids))
+        shops = list(
+            await session.execute(
+                select(Shop.id, Shop.uzum_shop_id).where(Shop.user_id == user.id)
             )
         )
-        for cred in creds:
-            await session.delete(cred)
+        if not shops:
+            return 0
 
-    log.info("API kalit o'chirildi: tg_id=%s, %s ta do'kon", telegram_id, len(creds))
-    return len(creds)
+        shop_ids = [row.id for row in shops]
+
+        # Yozish tarixi ham o'chadi — hech bo'lmasa server logida iz
+        # qolsin (CLAUDE.md: har bir yozish qayd etiladi).
+        writes = await session.scalar(
+            select(func.count())
+            .select_from(StockWriteLog)
+            .where(StockWriteLog.shop_id.in_(shop_ids))
+        )
+
+        for model in _SHOP_OWNED_TABLES:
+            await session.execute(delete(model).where(model.shop_id.in_(shop_ids)))
+        await session.execute(delete(Shop).where(Shop.id.in_(shop_ids)))
+
+        # Tanlangan do'kon o'chgan bo'lsa ko'rsatkich osilib qolmasin
+        # (bu ustunda FK yo'q — o'zimiz tozalaymiz).
+        if user.active_shop_id in shop_ids:
+            user.active_shop_id = None
+
+    log.info(
+        "Do'kon uzildi: tg_id=%s do'konlar=%s yozish_jurnalidan %s qator o'chdi",
+        telegram_id,
+        [row.uzum_shop_id for row in shops],
+        writes or 0,
+    )
+    return len(shops)
 
 
 async def has_api_key(telegram_id: int) -> bool:

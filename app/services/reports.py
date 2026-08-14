@@ -27,6 +27,7 @@ from app.db.models import (
     Shop,
     Subscription,
     User,
+    shop_has_valid_key,
 )
 from app.docs.numbers import format_money
 from app.services.mappers import CANCELLED_STATUSES
@@ -157,7 +158,12 @@ async def send_daily_reports() -> int:
             select(Shop, User, Subscription)
             .join(User, Shop.user_id == User.id)
             .outerjoin(Subscription, Subscription.user_id == User.id)
-            .where(Shop.is_active.is_(True), User.is_blocked.is_(False))
+            .where(
+                Shop.is_active.is_(True),
+                User.is_blocked.is_(False),
+                # Kalit uzilgan bo'lsa hisobot ham to'xtaydi (`/stopapi`)
+                shop_has_valid_key(),
+            )
         )
         targets = [
             (shop.id, shop.title or shop.uzum_shop_id, user.telegram_id)

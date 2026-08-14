@@ -26,6 +26,7 @@ from app.db.models import (
     StockSnapshot,
     Subscription,
     User,
+    shop_has_valid_key,
 )
 
 log = get_logger(__name__)
@@ -142,7 +143,13 @@ async def send_alerts() -> int:
             select(Shop, User, Subscription)
             .join(User, Shop.user_id == User.id)
             .outerjoin(Subscription, Subscription.user_id == User.id)
-            .where(Shop.is_active.is_(True), User.is_blocked.is_(False))
+            .where(
+                Shop.is_active.is_(True),
+                User.is_blocked.is_(False),
+                # Kalitsiz do'kon — uzilgan do'kon. Bazadagi eski ma'lumot
+                # asosida xabar yubormaymiz.
+                shop_has_valid_key(),
+            )
         )
         targets = [
             (shop.id, user.telegram_id)

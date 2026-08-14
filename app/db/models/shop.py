@@ -11,10 +11,12 @@ from datetime import datetime
 from sqlalchemy import (
     Boolean,
     Enum,
+    Exists,
     ForeignKey,
     Index,
     String,
     UniqueConstraint,
+    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -87,3 +89,20 @@ class ShopCredential(Base, TimestampMixin):
 
     def __repr__(self) -> str:  # maxfiy ma'lumot chiqmasin
         return f"<ShopCredential shop_id={self.shop_id} type={self.auth_type.value}>"
+
+
+def shop_has_valid_key() -> Exists:
+    """`Shop` so'roviga qo'yiladigan shart: do'konda yaroqli kalit bormi.
+
+    Xabarnoma va hisobot yuboruvchilar shu shartni qo'yishi shart.
+    Kalitsiz do'konga xabar yuborish — seller `/stopapi` bilan uzganidan
+    keyin ham eski ma'lumot asosida xabar olishi degani.
+    """
+    return (
+        select(ShopCredential.id)
+        .where(
+            ShopCredential.shop_id == Shop.id,
+            ShopCredential.is_valid.is_(True),
+        )
+        .exists()
+    )

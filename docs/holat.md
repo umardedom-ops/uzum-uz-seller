@@ -45,7 +45,7 @@ ataylab chiqarilgan; aksiya endpointi Uzum API'da umuman yo'q).
 | **Hodimlar · Guruh/kanal · Web-kabinet** | ✅ jamoa fichalari (2026-08-11) |
 | **Google Sheets** | ✅ ulangan, kunlik 09:30 + `/sheets`, diagrammalar bilan |
 | **Click to'lovi** | ✅ **YOQILGAN** — `click: on`, webhook ishlaydi |
-| `/stopapi` · yashirin `/admindad` | ✅ 2026-08-11 |
+| `/stopapi` · yashirin `/admindad` | ✅ 2026-08-11 (uzilganda do'kon **butunlay o'chadi** — 2026-08-14) |
 
 > ✅ **Click ishlaydi** (2026-08-11). Servis «Uzum Seller FinBot»,
 > `SERVICE_ID=109666`, `MERCHANT_ID=63121`. Webhook manzillari Click
@@ -223,6 +223,31 @@ sotuvchi artikuli · `/stopapi` · yashirin `/admindad`.
     `tests/conftest.py` har sessiyaga vaqtinchalik baza beradi.
 13. **Alembic `UtcDateTime` uchun import qo'shmasdi** → har yangi
     migratsiya `NameError` bilan yiqilardi. `env.py` da `render_item`.
+14. **`/stopapi` dan keyin ham xabarnoma kelardi** (2026-08-14). Kalit
+    o'chardi, lekin do'kon va yig'ilgan ma'lumot joyida qolardi — fon
+    vazifalari (sync, audit, xabarnoma, kunlik hisobot) do'konni
+    `is_active` bo'yicha tanlaydi va **bazadagi** eski ma'lumot ustida
+    ishlashda davom etardi ("tovar bloklangan" xabari uzilgan do'kondan
+    kelaverardi).
+
+    Endi `/stopapi` do'konni **butunlay uzadi**: `disconnect_api`
+    kalitni, do'kon qatorini va unga tegishli hamma jadvalni o'chiradi
+    (`_SHOP_OWNED_TABLES` — mahsulot, buyurtma, qaytarish, qoldiq,
+    audit, xabarnoma sozlamasi, jamoa, yozish jurnali), `active_shop_id`
+    ni tozalaydi. Xabar yasashga manba qolmaydi. Obuna va to'lov
+    tarixi tegilmaydi — ular foydalanuvchida.
+
+    ⚠️ Bola jadvallar DB darajasida `ondelete="CASCADE"`, lekin SQLite
+    buni `PRAGMA foreign_keys=ON` siz bajarmaydi — shuning uchun xizmat
+    ularni o'zi o'chiradi. Yangi `shop_id` li jadval qo'shsangiz,
+    `_SHOP_OWNED_TABLES` ga ham qo'shing.
+
+    Qayta ulash: kalit yuboriladi va **kalit qaysi do'konniki bo'lsa,
+    o'sha do'kon** ulanadi (`GET /v1/shops`) — eski do'kon qaytmaydi.
+
+    Qo'shimcha himoya: `alerts.send_alerts` va `reports.send_daily_reports`
+    endi `shop_has_valid_key()` shartini qo'yadi — kalitsiz yoki kaliti
+    yaroqsiz do'konga xabar ketmaydi.
 
 ## Ma'lumotlar bazasi holati
 

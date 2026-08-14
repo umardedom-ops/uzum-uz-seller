@@ -311,19 +311,22 @@ TEXTS: dict[str, str] = {
     ),
     "stock_edit_cancelled": "🚫 Bekor qilindi. Qoldiq o'zgarmadi.",
     "stopapi_confirm": (
-        "🔌 <b>API kalitni uzasizmi?</b>\n\n"
-        "Uzilgach:\n"
-        "• sinxronizatsiya <b>to'xtaydi</b>\n"
-        "• yangi ma'lumot kelmaydi (eskisi saqlanadi)\n"
-        "• audit va hisobotlar yangilanmaydi\n\n"
-        "Qayta ulash oson: <b>yangi kalitni shu yerga yuboring</b> — "
-        "o'zim taniyman."
+        "🔌 <b>Do'konni uzasizmi?</b>\n\n"
+        "Uzilgach do'kon <b>butunlay uziladi</b>:\n"
+        "• kalit o'chadi, sinxronizatsiya to'xtaydi\n"
+        "• yig'ilgan ma'lumot (mahsulot, buyurtma, qoldiq, audit) "
+        "<b>o'chiriladi</b>\n"
+        "• xabarnoma va hisobotlar kelmaydi\n\n"
+        "⚠️ Buni qaytarib bo'lmaydi. Obunangiz saqlanadi.\n\n"
+        "Qayta ulash: <b>kalitni shu yerga yuboring</b> — kalit qaysi "
+        "do'konniki bo'lsa, o'sha do'kon ulanadi."
     ),
     "stopapi_yes": "🔌 Ha, uzilsin",
     "stopapi_done": (
-        "🔌 <b>Uzildi.</b> {count} ta do'kon kaliti o'chirildi.\n\n"
-        "Ma'lumotlaringiz saqlanib qoldi. Qayta ulash uchun yangi kalitni "
-        "shu yerga yuboring."
+        "🔌 <b>Uzildi.</b> {count} ta do'kon o'chirildi — kalit ham, "
+        "yig'ilgan ma'lumot ham qolmadi.\n\n"
+        "Endi xabarnoma va hisobot kelmaydi. Ulash uchun kalitni shu "
+        "yerga yuboring."
     ),
     "stopapi_kept": "✅ Bekor qilindi. Kalit joyida.",
     "stopapi_none": (
