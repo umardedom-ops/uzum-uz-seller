@@ -20,8 +20,11 @@ Kod izohlari, docstring'lar, commit xabarlari va bot matnlari —
      (b) `UZUM_WRITES_ENABLED` bayrog'i ortida (standart o'chiq),
      (c) `stock_write_log` ga yozilib. `base.post` qayta urinmaydi
      (idempotentlik noma'lum). Sabab va tarix: `docs/holat.md` "Yozish".
-   * ⚠️ POST tanasi (body) Swagger'dan tasdiqlanmaguncha uydirilmaydi —
-     `writes.py` dagi `_build_stock_payload` shu tasdiqni kutadi.
+   * ⚠️ **POST tanasi uydirilmaydi.** Spetsifikatsiyadan oling — u API
+     kalit bilan ochiladi: `GET /swagger/api-docs` + `Authorization`.
+     (Brauzerda `RBAC denied` chiqadi, kalit bilan ishlaydi.) Bir marta
+     taxmin qilingan edi va noto'g'ri chiqdi: `skuId` emas, **`barcode`**
+     majburiy. Endpointlar ro'yxati: `docs/api-inventory.md §5-quinquies`.
 2. **Maxfiy ma'lumot logga tushmaydi.** API kalitlari `shop_credentials`
    da shifrlangan holda. `.env` git'ga tushmaydi.
 3. **Audit natijasi "aniq fakt" emas, "tekshirish kerak".** Noto'g'ri
@@ -72,6 +75,12 @@ Loglar: `docker compose -p uzumbot logs bot --tail 50`
   import qo'shilmaydi va migratsiya yiqiladi.
 * **Testlar o'z vaqtinchalik bazasida ishlaydi** (`tests/conftest.py`).
   Haqiqiy `uzumbot.db` ga yozmang.
+* **FBS akt statuslari** — `/v1/fbs/invoice` `statuses` ni majburiy
+  qiladi va faqat uchtasini oladi: `CREATED · ACCEPTED · CANCELLED`.
+  ⚠️ `CANCELLED` **ikkita L** bilan, buyurtma endpointida esa bitta.
+* **Yangi tugma qo'shsangiz handlerini ham yozing** — `start:go` bir
+  marta handlersiz qolib, bot jim qolgan. `tests/unit/test_buttons.py`
+  har bir `callback_data` ga handler borligini tekshiradi.
 * **Telegram HTML**: faqat `b, i, u, s, code, pre, a, blockquote,
   tg-spoiler`. Noto'g'ri teg — xabar rad etiladi va bot "ishlamayapti"
   bo'lib ko'rinadi. `tests/unit/test_texts.py` buni tekshiradi.

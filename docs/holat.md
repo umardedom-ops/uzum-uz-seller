@@ -1,17 +1,20 @@
-# Loyiha holati — 2026-08-09
+# Loyiha holati — 2026-08-11
 
 > Yangi suhbat boshlanganda **shu faylni birinchi bo'lib o'qing**.
 > Texnik topshiriq: `SPEC.md`. API ma'lumotnomasi: `docs/api-inventory.md`.
 
 ## Qisqacha
 
-Uzum Market sellerlari uchun Telegram bot. Kod to'liq yozilgan,
-**604 test o'tadi**, lint toza. Bot ishga tushadi va haqiqiy do'konlar
-bilan ishlaydi.
+Uzum Market sellerlari uchun Telegram bot. **921 test o'tadi**, lint toza,
+serverda 24/7 ishlaydi va haqiqiy do'kon bilan ulangan (231 mahsulot).
 
-**Audit raqamlari 2026-08-07 da tekshirildi va tuzatildi** —
-`docs/sverka/xulosa.md`. Soxta 7,63 mln so'm yo'qoldi, ishlamayotgan
-4 ta audit ishga tushdi.
+**Nima ishlaydi:** audit va pretenziya · hisobotlar · qoldiq · FBS
+buyurtma/yorliq/akt · yunit-iqtisodiyot · Click to'lovi · hodimlar ·
+guruh/kanal · web-kabinet · Google Sheets · qoldiqqa **yozish** (jonli).
+
+**Raqobatchi bilan holat:** `@uzumplusbot` (Market Plus) to'liq tahlil
+qilingan. Ularda bor-u bizda yo'q narsa qolmadi (Yandex/AI/Didox —
+ataylab chiqarilgan; aksiya endpointi Uzum API'da umuman yo'q).
 
 ## Ishlaydigan narsalar
 
@@ -41,46 +44,65 @@ bilan ishlaydi.
 | **Qaytgan tovarni qoldiqqa qo'shish** | ✅ tasdiq bilan, har qaytarish bir marta |
 | **Hodimlar · Guruh/kanal · Web-kabinet** | ✅ jamoa fichalari (2026-08-11) |
 | **Google Sheets** | ✅ ulangan, kunlik 09:30 + `/sheets`, diagrammalar bilan |
-| **Click to'lovi** | ⏳ **o'chirilgan** — pastga qarang |
+| **Click to'lovi** | ✅ **YOQILGAN** — `click: on`, webhook ishlaydi |
+| `/stopapi` · yashirin `/admindad` | ✅ 2026-08-11 |
 
-> ⛔ **Click hozircha O'CHIRILGAN** (`CLICK_SECRET_KEY` bo'sh).
-> Sabab: `.env` da chatga tushgan eski kalit turgan, webhook manzillari
-> esa Click kabinetida sozlanmagan. Bunday holatda seller pul to'lay
-> olardi-yu, tasdiq kelmagani uchun obuna faollashmasdi — pul ketib,
-> xizmat berilmasdi. Sozlangunicha o'chiq turadi.
+> ✅ **Click ishlaydi** (2026-08-11). Servis «Uzum Seller FinBot»,
+> `SERVICE_ID=109666`, `MERCHANT_ID=63121`. Webhook manzillari Click
+> kabinetida sozlangan: `<domen>/click/prepare` va `/click/complete`.
+> Tekshirish: `curl -s https://uzumbot.8xspuf.easypanel.host/health`
+> → `{"status":"ok","click":"on"}`.
 >
-> Hech qanday to'lov usuli yo'q bo'lsa, bot pullik tarif tanlaganга
-> «onlayn to'lov ulanmagan, support'ga yozing» deb aytadi va bepul
-> muddat bilan davom etadi. Tupik yo'q.
+> ⚠️ `CLICK_SECRET_KEY` bir marta chatga tushgan — **almashtirish tavsiya
+> etiladi** (Click kabinetidan Reset, keyin `.env` da yangilash).
 
-## Yozish (POST) — birinchi ficha: qoldiq o'zgartirish
+## Yozish (POST) — JONLI
 
-Ilgari Uzumga faqat GET yuborardik (qattiq qoida). Endi **yozish
-ehtiyotkorlik bilan ochildi** — birinchi ficha: FBS qoldig'ini botdan
-o'zgartirish. Sabab: API kalit read-only emas, to'liq huquq beradi
-(`docs/api-inventory.md §7`) — raqobatchining yozishga muhtoj fichalari
-(qoldiq, narx) shu kalit orqali qilinadi, menejer roli kerak emas.
+Ilgari Uzumga faqat GET yuborardik. **2026-08-11 dan yozish yoqilgan**
+(`UZUM_WRITES_ENABLED=true` serverda).
 
-**Xavfsizlik uch qatlam:**
+**Sxema taxmin emas, spetsifikatsiyadan.** ⭐ Muhim topilma: OpenAPI
+spetsifikatsiyasi **API kalit bilan** ochiladi:
 
-1. **Ajratilgan.** Yozish faqat `app/uzum/writes.py` (`UzumWriteClient`).
-   Audit/sync uni import qilmaydi — "audit faqat GET" kodda ko'rinadi.
-2. **Bayroq.** `UZUM_WRITES_ENABLED` (standart **o'chiq**). O'chiq bo'lsa
-   oqim **demo** rejimda ishlaydi: amal `stock_write_log` ga `DEMO`
-   sifatida tushadi, foydalanuvchiga "jonli emas" deyiladi.
-3. **Tasdiq + jurnal.** Har amal foydalanuvchi tasdig'i bilan, `base.post`
-   qayta urinmaydi (ikki marta yozishdan saqlanish), har amal
-   `stock_write_log` ga (kim, do'kon, sku, eski→yangi, natija) yoziladi.
+```
+GET /swagger/api-docs  +  Authorization: <TOKEN>   →  274 KB JSON
+```
 
-**Oqim:** Qoldiqlar ekrani → «✏️ Qoldiqni o'zgartirish» → SKU tanlash →
-yangi son → tasdiq ekrani → yoziladi. Kod: `app/bot/handlers/stock_edit.py`,
-`app/services/stock_write.py`.
+Brauzerda `RBAC: access denied` chiqadi, kalit bilan esa ishlaydi.
+**Body kerak bo'lsa shu yerdan oling, taxmin qilmang.**
 
-> ⚠️ **Jonli yoqishdan oldin:** `POST /v2/fbs/sku/stocks` so'rov TANASI
-> Swagger'dan tasdiqlanishi kerak. Hozir `writes.py:_build_stock_payload`
-> da taxminiy sxema (`{"skus":[{"skuId","amount"}]}`). Tasdiqlanib,
-> `.env` da `UZUM_WRITES_ENABLED=true` qo'yilganda jonli ishlaydi —
-> boshqa kod o'zgarmaydi. `Product.sku` = Uzum `skuId` (tekshirilgan).
+`POST /v2/fbs/sku/stocks`:
+
+```json
+{ "skuAmountList": [ { "barcode": "1000113258397", "amount": 30 } ] }
+```
+
+⚠️ Identifikator — **`barcode`** (majburiy), `skuId` **ixtiyoriy**.
+Bizning eski taxminimiz (`{"skus":[{"skuId":...}]}`) noto'g'ri edi.
+Shu sabab servis shtrix kodni bazadan izlaydi; topilmasa sababni ochiq
+aytadi. Barcha yozish endpointlari: `docs/api-inventory.md §5-quinquies`.
+
+**Xavfsizlik uch qatlam saqlanib qoldi:**
+
+1. **Ajratilgan** — yozish faqat `app/uzum/writes.py`; audit uni import
+   qilmaydi, "audit faqat GET" kodda ko'rinadi.
+2. **Bayroq** — `UZUM_WRITES_ENABLED` (o'chiq bo'lsa demo rejim).
+3. **Tasdiq + jurnal** — har amal tasdiq bilan, `stock_write_log` ga
+   yoziladi (kim, sku, eski→yangi, natija). `base.post` qayta urinmaydi.
+
+**Ikki oqim:**
+
+| Oqim | Qayerda |
+|---|---|
+| Qo'lda: SKU tanlash → yangi son → tasdiq | `handlers/stock_edit.py` |
+| Qaytgan tovarni qoldiqqa qo'shish | `services/returns_restock.py` |
+
+Qaytarish oqimida: faqat **qabul qilingan** qaytarish (`received_at`),
+har biri **bir marta** (`Return.restocked_at`), tasdiq har doim.
+
+> ⚠️ **Sinalmagan:** hozirgi do'konlar FBO (FBS qoldig'i 0). Jonli yozish
+> haqiqiy FBS do'konda hali sinab ko'rilmagan. Birinchi sinovda kichik
+> o'zgarishdan boshlang va Uzum kabinetida tekshiring.
 
 ## Sverka natijasi (2026-08-07)
 
@@ -124,6 +146,52 @@ ekraniga banner rasm va API yo'riqnomasiga video qo'llanma qo'shildi.
 > faol). Kalitlar ustuni xiralashtirildi, login va moliya sahifasi
 > kesildi. **Asl fayl va chat tarixida kalitlar qolgan — ularni
 > kabinetda almashtirish tavsiya etiladi.**
+
+## 2026-08-10/11 da qilingan ishlar
+
+**Raqobatchi to'liq tahlil qilindi** — `@uzumplusbot` (Market Plus).
+Narx: Standard 290k / Premium 490k (bizniki 149k/299k). Ular kabinetga
+«Менеджер» xodim bo'lib kiradi (to'liq huquq), bizda faqat API kalit.
+Ularning zaifligi: `/start` buzuq, token URL'da ochiq, login = Telegram ID.
+
+**Jamoa fichalari** (ularda bor edi, bizda yo'q edi):
+* **Hodimlar** — egasi Telegram ID orqali qo'shadi; hodim biriktirilgan
+  do'konni ko'radi, lekin to'lov/tarif/hodim boshqaruviga kira olmaydi
+  (`services/team.py`, kirish nazorati 14 ta test bilan).
+* **Guruh/kanal** — bot guruhga qo'shiladi, u yerda `/ulash` yoziladi.
+  Kunlik hisobot o'sha yerga ham boradi.
+* **Web-kabinet** — `/kabinet` bir martalik havola beradi (15 daqiqa),
+  ochilgach cookie'ga almashadi va URL tozalanadi. Token bazada sha256
+  xesh holida. Raqobatchi xatosi (token har havolada ochiq) takrorlanmadi.
+
+**Google Sheets** — biznes hisoboti avtomatik sinxronlanadi (kunlik 09:30
+va `/sheets`). Besh varaq: Xulosa · Obunachilar · To'lovlar · Promokodlar ·
+Diagramma (3 grafik). Kalit: `/opt/uzumbot/secrets/google-creds.json`.
+
+**Boshqa qo'shilganlar:** aktlar ro'yxati (o'lik ficha edi) ·
+`forecastOutOfStock` (Uzum prognozi, o'rtachadan ustun) · bozor narxi ·
+sotuvchi artikuli · `/stopapi` · yashirin `/admindad`.
+
+**Uchta jonli xato tuzatildi:**
+1. Promokod faqat bitta FSM holatida qabul qilinardi → bot restartdan
+   keyin **jim qolardi**. Endi `handlers/fallback.py` ushlaydi.
+2. `/start` do'koni ulangan sellerdan ham **API kalit so'rardi**. Endi
+   manba — baza, FSM emas.
+3. «🚀 Boshlash» tugmasi handlersiz edi. `tests/unit/test_buttons.py`
+   endi har bir tugmaga handler borligini tekshiradi.
+
+## Xavfsizlik (2026-08-11)
+
+* **fail2ban** o'rnatildi — 10 026 ta parol topish urinishi bor edi,
+  o'rnatgan zahoti 6 ta IP bloklandi.
+* **Web porti yopildi** — 8000 endi `127.0.0.1` da; Traefik konteyner
+  tarmog'i orqali yetadi. ⚠️ `ufw` Docker portlarini bloklamaydi
+  (DOCKER-USER zanjiri) — port bog'lash yagona ishonchli yo'l.
+* **Ochiq qolgan:** SSH parol autentifikatsiyasi hali yoqiq
+  (`PasswordAuthentication no` qo'yilmagan). Chatga tushgan sirlar:
+  `BOT_TOKEN`, `FERNET_KEY`, `POSTGRES_PASSWORD`, Click va Google
+  kalitlari — almashtirish kerak.
+* Port **3000** = EasyPanel paneli, internetga ochiq (tegilmagan).
 
 ## Yo'l-yo'lakay tuzatilgan xatolar (takrorlanmasin)
 
@@ -244,32 +312,52 @@ cd "E:\IT loihalar\UZUMUZBOT"
 
 ## Keyingi qadamlar (muhimlik tartibida)
 
-1. **Click to'lovini yoqish** — hozir o'chiq, daromad yo'q. Ikki yo'l:
-   * Bot uchun **alohida servis** yarating (tavsiya). Parfyum
-     servislariga tegilmaydi.
-   * Yoki mavjud `107646` (`parfumlux.uz`) servisidan foydalanish —
-     ❗ ammo webhook manzili har servisga BITTA. Uni almashtirsangiz
-     parfyum saytida to'lov uziladi. Almashtirishdan oldin eski
-     manzillarni ko'chirib oling.
+1. **Sirlarni almashtirish** — bir nechtasi chatga tushgan:
+   `CLICK_SECRET_KEY` (to'lov xavfi: soxta "to'lov o'tdi" yuborib bepul
+   obuna olish mumkin), `BOT_TOKEN`, `POSTGRES_PASSWORD`, Google
+   service account kaliti, `FERNET_KEY` (bu eng nozigi — do'kon
+   kalitlari shu bilan shifrlangan, almashtirilsa qayta shifrlash kerak).
 
-   Servis tayyor bo'lgach `.env` ga yozing:
+2. **SSH parolini yopish** — 10 000 dan ortiq urinish bo'lgan:
    ```bash
-   ssh root@46.62.199.124 'cd /opt/uzumbot && nano .env && docker compose -p uzumbot up -d'
+   ssh root@46.62.199.124 'printf "PasswordAuthentication no
+PermitRootLogin prohibit-password
+" > /etc/ssh/sshd_config.d/99-harden.conf && sshd -t && systemctl reload ssh'
    ```
-   `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY`.
-   Webhook manzillari: `<domen>/click/prepare` va `/click/complete`.
+   ⚠️ Avval yangi oynada kirib ko'ring, keyin eskisini yoping.
 
-2. **Haqiqiy sotuvi bor do'konni ulash** — AZIKO sinov do'koni,
-   sotuvi 2024-11 da to'xtagan. Formulani tirik ma'lumotda tekshirish
-   kerak.
+3. **Jonli to'lovni sinash** — Click yoqilgan, lekin haqiqiy pul bilan
+   bir marta ham o'tkazilmagan. To'lov → obuna ochilishi zanjiri
+   tasdiqlanmagan.
 
-3. Ofertaga rekvizit qo'shish (hozir rekvizitsiz)
+4. **Qoldiq yozishni FBS do'konda sinash** — kod jonli, sxema
+   spetsifikatsiyadan olingan, lekin hozirgi do'konlar FBO (FBS = 0).
+   Kichik o'zgarishdan boshlang, Uzum kabinetida tekshiring.
 
-4. Zaxira nusxani serverdan tashqariga chiqarish — hozir zaxira o'sha
-   serverning o'zida yotadi, server yo'qolsa u ham yo'qoladi.
+5. **Audit formulasini tirik ma'lumotda tasdiqlash** — AZIKO sinov
+   do'koni, sotuvi 2024-11 da to'xtagan. `SPEC 10` talab qiladi: 3 oylik
+   ma'lumotni qo'lda hisoblab, bot natijasi bilan solishtirish. **Bu
+   mahsulotning asosiy va'dasi** — tasdiqlanmaguncha sellerga
+   "yo'qotishingizni topdim" deyish xavfli.
 
-5. ~200 do'kondan keyin: sync'ni parallel qilish, audit yig'indilarini
-   SQL tomoniga o'tkazish
+6. **Ofertaga rekvizit** qo'shish (hozir rekvizitsiz, lekin pul qabul
+   qilinyapti).
+
+7. **Zaxira nusxani serverdan tashqariga** chiqarish — hozir o'sha
+   serverda yotadi, server yo'qolsa zaxira ham yo'qoladi.
+
+8. **`MemoryStorage` → doimiy saqlash** — bot har restartda FSM holatini
+   unutadi. Uch tuzatish buni foydalanuvchi uchun sezilmas qildi, lekin
+   ildiz sabab qolgan (`app/bot/main.py` dagi TODO).
+
+9. ~200 do'kondan keyin: sync'ni parallel qilish, audit yig'indilarini
+   SQL tomoniga o'tkazish.
+
+### Qilinmaydi (ongli qaror)
+
+Yandex Market · AI sharh javoblari · Didox — mahsulot yo'nalishidan
+chiqarilgan. **Aksiyalar** — Uzum API'da endpoint umuman yo'q
+(spetsifikatsiya tekshirilgan), raqobatchi boshqa API ishlatadi.
 
 ## Maxfiy ma'lumot
 
