@@ -110,11 +110,45 @@ ssh root@46.62.199.124 "docker exec uzumbot-bot-1 python -c \"from app.services.
 ❗ **Hali ishlamaydi** — sozlamalar bo'sh, `check_ready()` qaysi biri
 yo'qligini aniq aytadi:
 
-| Sozlama | Qayerdan |
+| Sozlama | Holat |
 |---|---|
-| `CLICK_MERCHANT_USER_ID` | Click kabineti, **sir** |
-| `CLICK_OFD_SPIC` | IKPU — `tasnif.soliq.uz` |
-| `CLICK_OFD_PACKAGE_CODE` | qadoq kodi, o'sha yerdan |
+| `CLICK_MERCHANT_USER_ID` | ✅ `89568` — lokal va serverda |
+| `CLICK_OFD_PINFL` | ✅ YaTT JSHSHIR — lokal va serverda |
+| `CLICK_OFD_SPIC` | ❌ pastdagi izlanishga qarang |
+| `CLICK_OFD_PACKAGE_CODE` | ❌ kabinetdan olinadi |
+
+#### IKPU izlanishi (2026-08-22)
+
+`tasnif.soliq.uz` ning ichki API'si orqali tasniflagich daraxti
+ochildi (`/api/cls-api/group`, `/class/short-info`,
+`/position/short-info`, `/subposition/short-info`). Portal qidiruvi
+(`elasticsearch/search`) **ishlatib bo'lmaydi** — u kod bo'yicha aniq
+moslik topmaydi va har qanday so'rovga Coca-Cola qaytaradi.
+
+Xizmat guruhlari `100`–`118`. Bizga tegishlilari:
+
+* **`103` — Ахборот ва алоқа соҳасидаги хизматлар** (80 ta kod)
+* `112` — Рақамли ахборот технологиялари (atigi 2 ta kod)
+
+Eng mos joy — **klass `10305`, pozitsiya `10305008`**
+(«Оплата за право на использование программного обеспечения»):
+
+| Subpozitsiya | Nomi | Mosligi |
+|---|---|---|
+| **`10305008002`** | dasturiy ta'minotga (bazaga) **kirish berish** | ⭐ SaaS uchun aynan shu |
+| `10305008003` | foydalanish **huquqini** berish (litsenziya) | litsenziya modeli uchun |
+| `10305001001` | loyihalash / ishlab chiqish / sotish | ❌ bizniki emas |
+| `11201001001` | raqamli AT xizmatlari (umumiy) | zaxira variant |
+
+⚠️ Internetda uchraydigan **`10305001001000000`** — bu **ishlab
+chiqish** xizmati (buyurtma asosida dastur yozish). Obunaga mos emas.
+
+Xizmat o'lchov birliklari: `id=25` «услуга (сум)», `id=85` «услуга (раз)».
+
+**Qolgan ish:** to'liq 17 xonali MXIK va unga biriktirilgan
+`PackageCode` — bularni `tasnif.soliq.uz` **shaxsiy kabinetidan**
+(E-IMZO bilan kirib, «Танланган МХИКлар») olish kerak. Ochiq API ularni
+bermaydi.
 
 `CLICK_OFD_VAT_PERCENT` standart **0** — soddalashtirilgan tartibdagi
 YaTT QQS to'lovchisi emas. QQS to'lovchisi bo'lsangiz 12 qo'ying.
