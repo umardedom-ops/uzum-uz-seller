@@ -237,6 +237,11 @@ def create_app() -> FastAPI:
 
     application.include_router(kabinet_router)
 
+    # Telegram Mini App — o'sha ma'lumot, Telegram ichida
+    from app.web.miniapp import router as miniapp_router
+
+    application.include_router(miniapp_router)
+
     @application.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok", "click": "on" if settings.click_enabled else "off"}

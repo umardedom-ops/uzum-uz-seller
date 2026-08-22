@@ -23,6 +23,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
+from app.bot import miniapp
 from app.bot.keyboards.billing import onboarding_plans_kb
 from app.bot.keyboards.menu import main_menu_kb
 from app.bot.keyboards.onboarding import (
@@ -83,7 +84,10 @@ async def _first_sync_and_notify(bot: Bot, telegram_id: int, lang: str) -> None:
             products=result.products,
             orders=result.orders,
         )
-    await bot.send_message(telegram_id, text)
+
+    # Mini App tugmasi AYNAN shu yerda: endi ko'rsatadigan ma'lumot bor.
+    # Kalit ulangan zahoti qo'yilsa seller bo'sh ekran ko'rardi.
+    await bot.send_message(telegram_id, text, reply_markup=miniapp.open_kb(lang))
 
 
 async def _lang(state: FSMContext) -> str:
@@ -352,6 +356,10 @@ async def on_api_key(message: Message, state: FSMContext) -> None:
     )
 
     await state.set_state(Onboarding.done)
+
+    # Do'kon ulandi — pastdagi «Kabinet» tugmasi shu foydalanuvchida
+    # paydo bo'ladi. Kalitini bermagan odamda u ko'rinmaydi.
+    await miniapp.enable_menu_button(message.bot, message.from_user.id, lang)
 
     # Tarif boshida tanlangan. Pullik bo'lsa to'lov endi so'raladi —
     # seller do'koni ulanganini ko'rgandan keyin, oldin emas.

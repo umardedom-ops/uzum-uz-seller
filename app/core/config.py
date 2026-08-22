@@ -106,6 +106,16 @@ class Settings(BaseSettings):
         )
 
     @property
+    def webapp_url(self) -> str:
+        """Telegram Mini App manzili.
+
+        Bo'sh bo'lsa tugma **umuman chizilmaydi** — Telegram `http` yoki
+        noto'g'ri manzilni rad etadi va tugma jimgina ishlamay qoladi.
+        """
+        base = self.click_base_url.rstrip("/")
+        return f"{base}/app" if base.startswith("https://") else ""
+
+    @property
     def ofd_enabled(self) -> bool:
         """Chek yuborish uchun sozlama yetarlimi.
 

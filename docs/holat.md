@@ -165,6 +165,58 @@ YaTT QQS to'lovchisi emas. QQS to'lovchisi bo'lsangiz 12 qo'ying.
 mijozga ko'rsatish. Hozir `payments` jadvalida maydon yo'q — migratsiya
 kerak. Kalitlar kelgach qilinadi.
 
+## Telegram Mini App (2026-08-22)
+
+Veb-kabinetdagi ma'lumot endi **Telegram ichida** ham ochiladi.
+
+**Kirish sharti ikkita:** faol obuna (sinov ham) **va** ulangan do'kon.
+Ikkalasi ham `app/web/miniapp.py` da tekshiriladi — bo'lmasa ochiq sabab
+va chiqish yo'li ko'rsatiladi, bo'sh ekran qolmaydi.
+
+**Botda qayerda ko'rinadi:**
+
+| Joy | Qachon paydo bo'ladi |
+|---|---|
+| Pastdagi «Kabinet» menyu tugmasi | Do'kon ulangan zahoti, **shu foydalanuvchida** (`set_chat_menu_button`) |
+| «📊 Kabinetni ochish» inline tugma | Birinchi sync **tugagach** — ko'rsatadigan ma'lumot paydo bo'lganda |
+
+Ikkinchisining vaqti ataylab shunday: kalit ulangan zahoti baza bo'sh
+bo'ladi va o'sha payt ochilsa seller birinchi marta bo'sh ekran ko'rardi.
+
+### Imzo tekshiruvi — eng nozik joy
+
+`app/services/telegram_webapp.py`, 22 test. Telegram `initData` beradi;
+u **oddiy matn**, brauzer konsolidan istalgan `id` yozish mumkin.
+Tekshirmasak har kim istalgan sellerning do'konini ko'radi — raqobatchida
+(`@uzumplusbot`) aynan shu xato bor.
+
+```
+secret_key = HMAC_SHA256(key="WebAppData", msg=<bot token>)
+hash       = HMAC_SHA256(key=secret_key,  msg=data_check_string)
+```
+
+⚠️ Kalit va xabar **teskari** tuyuladi: kalit — o'zgarmas `"WebAppData"`
+satri, xabar — bot tokeni. Odatdagidek yozilsa imzo hech qachon to'g'ri
+chiqmaydi va sabab ko'rinmaydi.
+
+Qo'shimcha himoya: `auth_date` 24 soatdan eski bo'lsa rad etiladi
+(o'g'irlangan `initData` muddatsiz ishlatilmasin), kelajakdagi sana ham
+rad etiladi (soat farqiga 5 daqiqa zaxira).
+
+Rad etilganda foydalanuvchiga **umumiy** xabar ketadi, sabab esa log'da —
+soxta so'rov yuborayotgan odamga yo'l ko'rsatmaymiz.
+
+### Sozlama
+
+Manzil `CLICK_BASE_URL` dan olinadi (`<base>/app`). U **https** bo'lmasa
+`webapp_url` bo'sh qaytadi va tugmalar **umuman chizilmaydi** — Telegram
+noto'g'ri manzilni rad etadi va tugma jimgina ishlamay qolardi.
+
+### Keyingi bo'lak
+
+Qoldiq tahrirlash va FBS ko'p tanlash ekranlari. Maket:
+`https://claude.ai/code/artifact/0c0e4c1e-7a64-427e-a33e-4070b59f23ac`
+
 ## Yozish (POST) — JONLI
 
 Ilgari Uzumga faqat GET yuborardik. **2026-08-11 dan yozish yoqilgan**

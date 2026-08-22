@@ -615,4 +615,6 @@ TEXTS: dict[str, str] = {
         "Ma'lumotlaringiz yig'ilgach ishga tushadi."
     ),
     "error": "😔 Xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
+    "miniapp_open": "📊 Kabinetni ochish",
+    "miniapp_menu": "Kabinet",
 }
