@@ -147,7 +147,11 @@ class TestPaymentLink:
 
         assert "service_id=107646" in link
         assert "merchant_id=63121" in link
-        assert "amount=149000" in link
+        # ⚠️ N.NN formati — hujjat talabi, butun son emas
+        assert "amount=149000.00" in link
+        # `card_type` berilmasligi kerak: berilsa faqat o'sha tizim
+        # kartasi qabul qilinadi (Humo egasi to'lay olmay qoladi)
+        assert "card_type" not in link
         assert "transaction_param=42" in link  # bizning payments.id
         assert link.startswith("https://my.click.uz/services/pay")
 
@@ -199,3 +203,28 @@ class TestWebhookEndpoints:
             },
         )
         assert resp.json()["error"] == -1
+
+
+class TestClickFailedFlag:
+    """`error` maydonini o'qish — webhook yiqilmasligi kerak.
+
+    Ilgari `int(req.error)` to'g'ridan-to'g'ri chaqirilardi. Raqam bo'lmagan
+    qiymat kelsa webhook 500 qaytarardi, Click esa 500 ni «javob yo'q» deb
+    hisoblab so'rovni takrorlayverardi.
+    """
+
+    def test_negative_is_failure(self) -> None:
+        from app.services.click import _click_failed
+
+        assert _click_failed("-5") is True
+
+    def test_zero_is_success(self) -> None:
+        from app.services.click import _click_failed
+
+        assert _click_failed("0") is False
+
+    def test_garbage_does_not_raise(self) -> None:
+        from app.services.click import _click_failed
+
+        assert _click_failed("") is False
+        assert _click_failed("xato") is False

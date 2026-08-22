@@ -138,12 +138,19 @@ def response(
 
 
 def payment_link(payment_id: int, amount: int) -> str:
-    """Mijozga beriladigan to'lov havolasi."""
+    """Mijozga beriladigan to'lov havolasi.
+
+    ⚠️ `amount` **N.NN** formatida bo'lishi shart (`149000.00`) — hujjat
+    shuni talab qiladi. Ilgari butun son yuborilardi.
+
+    `card_type` ataylab **berilmaydi**: berilsa faqat o'sha tizim kartasi
+    qabul qilinadi va, masalan, Humo egasi to'lay olmaydi.
+    """
     settings = get_settings()
     return (
         f"{PAY_URL}?service_id={settings.click_service_id}"
         f"&merchant_id={settings.click_merchant_id}"
-        f"&amount={amount}"
+        f"&amount={amount:.2f}"
         f"&transaction_param={payment_id}"
     )
 
@@ -198,22 +205,29 @@ async def handle_complete(req: ClickRequest) -> dict[str, object]:
         log.warning("Click imzo xato (complete): trans=%s", req.click_trans_id)
         return response(ClickError.SIGN_CHECK_FAILED)
 
-    # Click o'z tomonida xato yuborsa — to'lovni bekor qilamiz
-    if req.error and int(req.error) < 0:
-        await billing.reject_payment(int(req.merchant_trans_id))
-        return response(ClickError.TRANSACTION_CANCELLED)
-
     payment = await _load_payment(req.merchant_trans_id)
     if payment is None:
         return response(ClickError.USER_NOT_FOUND)
 
-    if str(payment["id"]) != str(req.merchant_prepare_id):
-        return response(ClickError.TRANSACTION_NOT_FOUND)
-
+    # ❗ Holat tekshiruvi `error` dan OLDIN turadi. Teskari tartibda
+    # to'langan yozuvga kelgan reversal avval `reject_payment` ga tushardi
+    # va javob «bekor qilindi» bo'lardi — Click tomonda bekor, bizda esa
+    # to'langan. Obuna zarar ko'rmasdi (`reject_payment` faqat PENDING ni
+    # o'zgartiradi), lekin himoya tasodifiy edi va javob noto'g'ri.
     if payment["status"] is PaymentStatus.PAID:
         return response(ClickError.ALREADY_PAID)
     if payment["status"] is PaymentStatus.REJECTED:
         return response(ClickError.TRANSACTION_CANCELLED)
+
+    # Click o'z tomonida xato yuborsa — to'lovni bekor qilamiz.
+    # `payment["id"]` ishlatiladi: `merchant_trans_id` raqam bo'lmasa
+    # `int()` yiqilib, webhook 500 qaytarardi.
+    if _click_failed(req.error):
+        await billing.reject_payment(int(payment["id"]))
+        return response(ClickError.TRANSACTION_CANCELLED)
+
+    if str(payment["id"]) != str(req.merchant_prepare_id):
+        return response(ClickError.TRANSACTION_NOT_FOUND)
 
     if not _amount_matches(req.amount, payment["amount"]):
         return response(ClickError.INCORRECT_AMOUNT)
@@ -238,6 +252,21 @@ async def handle_complete(req: ClickRequest) -> dict[str, object]:
 # ---------------------------------------------------------------------- #
 # Yordamchilar
 # ---------------------------------------------------------------------- #
+
+
+def _click_failed(error: str) -> bool:
+    """Click o'z tomonida xato yubordimi.
+
+    Raqam bo'lmagan qiymat kelsa `int()` yiqilib, webhook **500** qaytarardi.
+    Click 500 ni «javob yo'q» deb hisoblab so'rovni takrorlayveradi, biz esa
+    sababni ko'rmasdik. Endi noaniq qiymat «xato emas» deb o'qiladi va
+    keyingi tekshiruvlar ishlaydi.
+    """
+    try:
+        return int(error) < 0
+    except (TypeError, ValueError):
+        log.warning("Click `error` maydoni raqam emas: %r", error)
+        return False
 
 
 def _amount_matches(incoming: str, expected: Decimal) -> bool:

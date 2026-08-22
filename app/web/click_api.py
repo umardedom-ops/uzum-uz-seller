@@ -124,11 +124,41 @@ async def click_complete(
     result = await handle_complete(req)
     log.info("Click COMPLETE javob: %s", result)
 
-    # To'lov o'tgan bo'lsa mijozga xabar beramiz
+    # To'lov o'tgan bo'lsa: soliq cheki, so'ng mijozga xabar.
+    # Ikkalasi ham javobga ta'sir qilmaydi — Click «muvaffaqiyat» ni
+    # ko'rishi shart, aks holda to'lovni xato deb hisoblab pulni
+    # qaytaradi.
     if result.get("error") == 0:
+        await _fiscalize(req.merchant_trans_id)
         await _notify_client(req.merchant_trans_id)
 
     return result
+
+
+async def _fiscalize(merchant_trans_id: str) -> None:
+    """Soliq chekini yaratadi.
+
+    Chek yaratilmasa to'lov bekor qilinmaydi — pul allaqachon olingan va
+    uni qaytarish mijozga zarar. Lekin xato **jim yutilmaydi**: sabab
+    `click_ofd` ichida `log.error` bilan yoziladi.
+    """
+    from app.services import billing, click_ofd
+
+    try:
+        payment_id = int(merchant_trans_id)
+    except (TypeError, ValueError):
+        log.error("OFD: merchant_trans_id raqam emas: %r", merchant_trans_id)
+        return
+
+    details = await billing.payment_receipt_details(payment_id)
+    if details is None:
+        log.error("OFD: to'lov topilmadi, chek yaratilmadi: %s", payment_id)
+        return
+
+    amount_soum, name = details
+    await click_ofd.submit_receipt(
+        payment_id=payment_id, amount_soum=amount_soum, name=name
+    )
 
 
 async def _notify_client(merchant_trans_id: str) -> None:

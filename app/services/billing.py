@@ -197,6 +197,24 @@ async def reject_payment(payment_id: int, *, admin_id: int | None = None) -> boo
     return True
 
 
+async def payment_receipt_details(payment_id: int) -> tuple[int, str] | None:
+    """Soliq cheki uchun: `(summa_so'mda, pozitsiya_nomi)`.
+
+    Summa **bazadan** olinadi, Click yuborgan qiymatdan emas — chek va
+    haqiqiy yozuv har doim bir xil bo'lishi kerak.
+
+    Nom chekda ko'rinadi, shuning uchun tushunarli yoziladi: soliq
+    tekshiruvida «PRO 3 oy» «plan=pro months=3» dan aniqroq.
+    """
+    async with session_scope() as session:
+        payment = await session.get(Payment, payment_id)
+        if payment is None:
+            return None
+        months = payment.months or 1
+        name = f"Uzum Seller FinBot obunasi — {payment.plan.value.upper()}, {months} oy"
+        return int(payment.amount), name
+
+
 async def pending_payments() -> list[tuple[int, int, str, int]]:
     """Tasdiq kutayotgan to'lovlar: `(payment_id, telegram_id, tarif, summa)`."""
     async with session_scope() as session:

@@ -81,10 +81,44 @@ class Settings(BaseSettings):
     # Webhook serveri manzili (Click shu yerga murojaat qiladi)
     click_base_url: str = Field("", alias="CLICK_BASE_URL")
 
+    # --- Click fiskalizatsiya (OFD) — soliq cheki ---
+    # ⚠️ Chek MAJBURIY. Bularsiz to'lov o'tadi, lekin chek yaratilmaydi
+    # va sabab log'ga yoziladi (jim yutilmaydi).
+    #
+    # `merchant_user_id` — SIR, Click kabinetidan. `service_id` va
+    # `secret_key` yuqoridagilar bilan bir xil.
+    click_merchant_user_id: str = Field("", alias="CLICK_MERCHANT_USER_ID")
+    # Soliq identifikatori — bittasi to'ldiriladi:
+    #   YaTT / jismoniy shaxs → JSHSHIR, 14 raqam
+    #   yuridik shaxs         → STIR, 9 raqam
+    click_ofd_pinfl: str = Field("", alias="CLICK_OFD_PINFL")
+    click_ofd_tin: str = Field("", alias="CLICK_OFD_TIN")
+    # Xizmatning IKPU (SPIC) kodi va qadoq kodi — tasnif.soliq.uz dan.
+    click_ofd_spic: str = Field("", alias="CLICK_OFD_SPIC")
+    click_ofd_package_code: str = Field("", alias="CLICK_OFD_PACKAGE_CODE")
+    # QQS foizi. Soddalashtirilgan tartibdagi YaTT uchun — 0.
+    click_ofd_vat_percent: int = Field(0, alias="CLICK_OFD_VAT_PERCENT")
+
     @property
     def click_enabled(self) -> bool:
         return bool(
             self.click_service_id and self.click_merchant_id and self.click_secret_key
+        )
+
+    @property
+    def ofd_enabled(self) -> bool:
+        """Chek yuborish uchun sozlama yetarlimi.
+
+        Batafsil sabab `services/click_ofd.check_ready()` da — u qaysi
+        kalit yo'qligini aniq aytadi.
+        """
+        return bool(
+            self.click_merchant_user_id
+            and self.click_service_id
+            and self.click_secret_key
+            and self.click_ofd_spic
+            and self.click_ofd_package_code
+            and (self.click_ofd_pinfl or self.click_ofd_tin)
         )
 
     @property

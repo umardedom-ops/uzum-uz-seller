@@ -56,6 +56,73 @@ ataylab chiqarilgan; aksiya endpointi Uzum API'da umuman yo'q).
 > ⚠️ `CLICK_SECRET_KEY` bir marta chatga tushgan — **almashtirish tavsiya
 > etiladi** (Click kabinetidan Reset, keyin `.env` da yangilash).
 
+### Click auditi (2026-08-22)
+
+Integratsiya rasmiy talablarga solishtirildi. **Asosiy qism to'g'ri:**
+imzo formulasi ikkala bosqichda hujjatdagidek, imzo birinchi bo'lib
+tekshiriladi, javob har doim HTTP 200, xato kodlari to'liq, so'rov va
+javob jurnalga yoziladi, sir logga tushmaydi.
+
+⭐ Eng qimmat xato **yo'q**: summa mijozdan olinmaydi. `create_payment`
+uni `price_for(plan) * months` bilan serverda hisoblaydi, ya'ni
+brauzerdan «1000 so'm» yozib yuborib bo'lmaydi.
+
+Uchta narsa tuzatildi:
+
+1. **To'lov havolasidagi summa formati.** `amount=149000` yuborilardi,
+   hujjat esa **N.NN** talab qiladi. Endi `{amount:.2f}` → `149000.00`.
+2. **`complete` da tekshiruv tartibi.** `error < 0` sharti holat
+   tekshiruvidan **oldin** turardi: to'langan yozuvga kelgan reversal
+   avval `reject_payment` ga tushardi va javob «bekor qilindi» bo'lardi.
+   Obuna zarar ko'rmasdi (`reject_payment` faqat `PENDING` ni
+   o'zgartiradi) — ya'ni himoya **tasodifiy** edi. Endi holat birinchi
+   tekshiriladi va javob `ALREADY_PAID` bo'ladi.
+3. **`int(req.error)` qo'riqsiz edi.** Raqam bo'lmagan qiymat kelsa
+   webhook **500** qaytarardi; Click 500 ni «javob yo'q» deb hisoblab
+   so'rovni takrorlayverardi. Endi `_click_failed()` uni yutmaydi —
+   sababni logga yozadi va oqim davom etadi.
+
+### Fiskalizatsiya (OFD) — kod yozilgan, sozlanmagan
+
+Ilgari umuman yo'q edi: **pul olinardi, soliq cheki yaratilmasdi.**
+Endi `app/services/click_ofd.py` bor (21 test).
+
+⚠️ **Bu Shop API emas, Merchant API.** Autentifikatsiya boshqacha:
+Shop API — MD5 imzo (Click bizga keladi), Merchant API — SHA1 `Auth`
+sarlavhasi (biz Click'ga boramiz).
+
+Chek `complete` muvaffaqiyatli bo'lganda yuboriladi
+(`click_api._fiscalize`). **To'lov javobiga ta'sir qilmaydi** — chek
+yaratilmasa ham Click «muvaffaqiyat» ko'radi, aks holda u to'lovni xato
+deb hisoblab pulni qaytaradi. Sabab esa `log.error` bilan yoziladi.
+
+Soliq subyekti: **YaTT** → `CommissionInfo` da `PINFL` (JSHSHIR, 14
+raqam). Qiymat `.env` da, git'ga tushmaydi.
+
+❗ **Hali ishlamaydi** — uchta sozlama bo'sh, `check_ready()` qaysi biri
+yo'qligini aniq aytadi:
+
+| Sozlama | Qayerdan |
+|---|---|
+| `CLICK_MERCHANT_USER_ID` | Click kabineti, **sir** |
+| `CLICK_OFD_SPIC` | IKPU — `tasnif.soliq.uz` |
+| `CLICK_OFD_PACKAGE_CODE` | qadoq kodi, o'sha yerdan |
+
+`CLICK_OFD_VAT_PERCENT` standart **0** — soddalashtirilgan tartibdagi
+YaTT QQS to'lovchisi emas. QQS to'lovchisi bo'lsangiz 12 qo'ying.
+
+> Eslatma: `data.py` dagi `ikpu` maydoni — bu **Uzum mahsulotlariniki**,
+> fiskalizatsiyaga aloqasi yo'q. Adashtirmang.
+
+> ⚠️ Guvohnomadagi faoliyat turi — **chakana savdo** (oziq-ovqat va
+> nooziq-ovqat tovarlari). Bot esa **dasturiy xizmat obunasi** sotadi.
+> IKPU tanlashdan oldin buni buxgalter bilan aniqlang: faoliyat turi
+> mos kelmasa chek o'tsa ham keyin savol tug'ilishi mumkin.
+
+**Qolgan ish:** chek QR havolasini (`receipt_qr`) bazaga saqlash va
+mijozga ko'rsatish. Hozir `payments` jadvalida maydon yo'q — migratsiya
+kerak. Kalitlar kelgach qilinadi.
+
 ## Yozish (POST) — JONLI
 
 Ilgari Uzumga faqat GET yuborardik. **2026-08-11 dan yozish yoqilgan**
@@ -354,6 +421,16 @@ PermitRootLogin prohibit-password
 3. **Jonli to'lovni sinash** — Click yoqilgan, lekin haqiqiy pul bilan
    bir marta ham o'tkazilmagan. To'lov → obuna ochilishi zanjiri
    tasdiqlanmagan.
+
+   ⚠️ Sinov to'lovi **haqiqiy** bo'ladi va fiskal chek soliqqa tushadi.
+   Shuning uchun quyidagi band **shundan oldin** hal bo'lgani ma'qul.
+
+3-bis. **Fiskalizatsiya (OFD) sozlamalarini to'ldirish** — kod yozilgan
+   (`services/click_ofd.py`), lekin uchta qiymat bo'sh:
+   `CLICK_MERCHANT_USER_ID`, `CLICK_OFD_SPIC` (IKPU),
+   `CLICK_OFD_PACKAGE_CODE`. Ular kelmaguncha chek yaratilmaydi —
+   `check_ready()` sababni aniq aytadi. Batafsil:
+   «Fiskalizatsiya (OFD)» bo'limi.
 
 4. **Qoldiq yozishni FBS do'konda sinash** — kod jonli, sxema
    spetsifikatsiyadan olingan, lekin hozirgi do'konlar FBO (FBS = 0).
