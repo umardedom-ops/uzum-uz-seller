@@ -124,15 +124,34 @@ async def click_complete(
     result = await handle_complete(req)
     log.info("Click COMPLETE javob: %s", result)
 
-    # To'lov o'tgan bo'lsa: soliq cheki, so'ng mijozga xabar.
-    # Ikkalasi ham javobga ta'sir qilmaydi — Click «muvaffaqiyat» ni
-    # ko'rishi shart, aks holda to'lovni xato deb hisoblab pulni
-    # qaytaradi.
     if result.get("error") == 0:
-        await _fiscalize(req.merchant_trans_id)
-        await _notify_client(req.merchant_trans_id)
+        await _after_payment(req.merchant_trans_id)
 
     return result
+
+
+async def _after_payment(merchant_trans_id: str) -> None:
+    """To'lovdan keyingi ishlar: soliq cheki va mijozga xabar.
+
+    ❗ **Bu yerdan hech qanday istisno chiqmasligi kerak.** Chiqsa FastAPI
+    500 qaytaradi, Click esa 500 ni «to'lov o'tmadi» deb o'qib
+    **muvaffaqiyatli to'lovni qaytarib yuboradi** — mijoz puldan ham,
+    obunadan ham ayriladi.
+
+    Ilgari ikkala qadamning ichida qisman himoya bor edi (`_notify_client`
+    da bot chaqiruvi o'ralgan), lekin bazaga murojaat o'ralmagan edi.
+    Endi kafolat bitta joyda: qadam qo'shilsa ham u avtomatik qo'riqlanadi.
+    """
+    steps = (("chek", _fiscalize), ("xabar", _notify_client))
+    for name, run in steps:
+        try:
+            await run(merchant_trans_id)
+        except Exception:
+            log.exception(
+                "To'lovdan keyingi qadam yiqildi (%s): merchant_trans=%s",
+                name,
+                merchant_trans_id,
+            )
 
 
 async def _fiscalize(merchant_trans_id: str) -> None:
