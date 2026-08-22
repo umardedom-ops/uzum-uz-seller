@@ -99,7 +99,15 @@ deb hisoblab pulni qaytaradi. Sabab esa `log.error` bilan yoziladi.
 Soliq subyekti: **YaTT** → `CommissionInfo` da `PINFL` (JSHSHIR, 14
 raqam). Qiymat `.env` da, git'ga tushmaydi.
 
-❗ **Hali ishlamaydi** — uchta sozlama bo'sh, `check_ready()` qaysi biri
+**Deploy holati (2026-08-22):** kod `master` da va serverda jonli
+(`3beef6e`). Lekin **server `.env` da OFD qiymatlari yo'q** — lokalda
+bor, serverga qo'shilmagan. Tekshirish:
+
+```bash
+ssh root@46.62.199.124 "docker exec uzumbot-bot-1 python -c \"from app.services.click_ofd import check_ready; from app.core.config import get_settings; print(check_ready(get_settings()) or 'TAYYOR')\""
+```
+
+❗ **Hali ishlamaydi** — sozlamalar bo'sh, `check_ready()` qaysi biri
 yo'qligini aniq aytadi:
 
 | Sozlama | Qayerdan |
